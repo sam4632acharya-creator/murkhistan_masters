@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcaScroll</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.383.0/dist/umd/lucide.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#e2e8f0;color:#0f172a}
+.hsb::-webkit-scrollbar{display:none}.hsb{scrollbar-width:none}
+.ring-g{background:linear-gradient(135deg,#6366f1,#10b981);padding:2.5px}
+.cert{background:radial-gradient(circle at 15% 15%,#6366f166,transparent 55%),radial-gradient(circle at 90% 95%,#10b98155,transparent 50%),#0f172a}
+@keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}.pop{animation:pop 1.6s ease-in-out infinite}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}.rise{animation:rise .3s ease both}
+#print-root{display:none}
+@media print{body>*:not(#print-root){display:none!important}#print-root{display:block!important}#cvDoc{box-shadow:none!important;border:0!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="max-w-md mx-auto min-h-screen bg-slate-50 relative shadow-xl">
+  <header class="sticky top-0 z-20 bg-white/85 backdrop-blur-md border-b border-slate-200 h-14 px-4 flex items-center justify-between">
+    <div class="flex items-center gap-2 font-extrabold tracking-tight text-lg"><span class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-emerald-500 grid place-items-center text-white"><i data-lucide="scroll-text" class="w-4 h-4"></i></span>EcaScroll</div>
+    <div id="hdr" class="flex items-center gap-2 text-sm font-semibold"></div>
+  </header>
+  <main id="view" class="pb-24"></main>
+  <nav id="nav" class="fixed bottom-0 inset-x-0 max-w-md mx-auto z-20 bg-white/90 backdrop-blur-md border-t border-slate-200 grid grid-cols-4"></nav>
+</div>
+
+<div id="story" class="fixed inset-0 z-50 hidden bg-slate-900/80 backdrop-blur-md items-center justify-center p-4" onclick="closeStory()"></div>
+
+<div id="addM" class="fixed inset-0 z-40 hidden items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md" onclick="if(event.target===this)closeM('addM')">
+  <div class="bg-white w-full max-w-md rounded-2xl p-5 max-h-[92vh] overflow-y-auto rise">
+    <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg tracking-tight">Add achievement</h3><button onclick="closeM('addM')" aria-label="Close" class="p-1.5 rounded-lg hover:bg-slate-100 active:scale-95 transition-all"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+    <input id="fTitle" placeholder="Activity title" class="inp mb-2">
+    <input id="fOrg" placeholder="Organizer (e.g. Rotaract Club)" class="inp mb-2">
+    <select id="fCat" class="inp mb-2"></select>
+    <textarea id="fDesc" rows="3" placeholder="What did you achieve?" class="inp mb-2"></textarea>
+    <div id="drop" class="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 transition-all" onclick="fFile.click()"><div id="dropIn"></div></div>
+    <input id="fFile" type="file" class="hidden" accept="image/*,.pdf">
+    <p id="err" class="text-sm text-rose-600 mt-2 hidden"></p>
+    <div class="flex justify-end gap-2 mt-4"><button onclick="closeM('addM')" class="px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 active:scale-95 transition-all">Cancel</button><button onclick="submitAdd()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition-all">Post achievement</button></div>
+  </div>
+</div>
+
+<div id="cvM" class="fixed inset-0 z-40 hidden items-start justify-center p-3 bg-slate-900/50 backdrop-blur-md overflow-y-auto" onclick="if(event.target===this)closeM('cvM')">
+  <div class="bg-white w-full max-w-3xl rounded-2xl p-5 my-4 rise">
+    <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg tracking-tight">CV Builder</h3><button onclick="closeM('cvM')" aria-label="Close" class="p-1.5 rounded-lg hover:bg-slate-100 active:scale-95 transition-all"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+    <div id="tpls" class="grid grid-cols-2 gap-2 mb-3"></div>
+    <button onclick="exportCV()" class="mb-3 ml-auto flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all"><i data-lucide="printer" class="w-4 h-4"></i>Print / Export to PDF</button>
+    <div id="cvPrev" class="bg-slate-100 rounded-xl p-3 overflow-x-auto"></div>
+  </div>
+</div>
+<div id="print-root"></div>
+<style>.inp{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.5rem .75rem;font-size:.875rem;outline:none}.inp:focus{box-shadow:0 0 0 2px #6366f1}</style>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ini=n=>(n.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2)||'?').toUpperCase();
+const CAT={Hackathons:'bg-indigo-50 text-indigo-700',MUNs:'bg-amber-50 text-amber-700',Sports:'bg-sky-50 text-sky-700',Arts:'bg-rose-50 text-rose-700'};
+const FILTERS=['All','Hackathons','MUNs','Sports','Arts'];
+const day=o=>new Date(Date.now()+o*864e5).toLocaleDateString('en',{month:'short',day:'numeric'});
+const ME={name:'Ram Bahadur',grade:'Grade 12, Science',loc:'Kathmandu, Nepal',school:'Budhanilkantha School',email:'ram.bahadur@example.com',bio:'Physics enthusiast and weekend coder. Building tools that help Nepali students learn offline.'};
+const people=[
+ {id:'sita',name:'Sita Rai',connected:true},{id:'nabin',name:'Nabin Shrestha',connected:true},
+ {id:'priya',name:'Priya Thapa',connected:true},{id:'bikash',name:'Bikash Gurung',connected:true},
+ {id:'anisha',name:'Anisha Lama',connected:false,sub:'Grade 11 · Pokhara'},{id:'rohan',name:'Rohan Tamang',connected:false,sub:'Grade 12 · Lalitpur'},
+ {id:'sujata',name:'Sujata Adhikari',connected:false,sub:'Grade 11 · Bhaktapur'},{id:'kiran',name:'Kiran Magar',connected:false,sub:'Grade 12 · Chitwan'}];
+const S={tab:'home',filter:'All',chat:null,edit:false,cv:'harvard',timer:null,
+ posts:[
+ {by:'sita',cat:'Hackathons',title:'1st Place, Himalayan Hack 2026',org:'KU Computer Science Club',details:'48-hour national hackathon, 62 teams, Dhulikhel',date:'Aug 2026',time:'2h ago',won:'Built an offline crop-disease detector for farmers with weak connectivity.'},
+ {by:'nabin',cat:'MUNs',title:'Best Delegate, KathMUN 2026',org:'Rotaract Club of Kathmandu',details:'3-day conference, 14 committees, 300 delegates',date:'Jul 2026',time:'5h ago',won:'Represented Brazil in UNEP and passed a resolution on glacier monitoring.'},
+ {by:'priya',cat:'Sports',title:'Captain, Inter-School Basketball Cup',org:'Nepal Schools Sports Council',details:'Regional round, 16 schools, Lalitpur',date:'Jun 2026',time:'1d ago',won:'Led the girls’ team to the semifinals, averaging 14 points per game.'},
+ {by:'bikash',cat:'Arts',title:'Winner, Youth Art Biennale',org:'Nepal Art Council',details:'Open youth category, 210 entries, Patan Museum',date:'May 2026',time:'2d ago',won:'Won with a Newari-pattern mural on climate and the Himalaya.'},
+ {by:'me',cat:'Hackathons',title:'Runner-up, Nepal Code Sprint',org:'Code for Nepal',details:'24-hour national sprint, Kathmandu',date:'Apr 2026',time:'1w ago',won:'Built an offline quiz app for rural schools.'},
+ {by:'me',cat:'MUNs',title:'Outstanding Delegate, EduMUN',org:'Edu Nepal',details:'2-day conference, Bhaktapur',date:'Feb 2026',time:'2mo ago',won:'Delegate of Japan in the Security Council.'}],
+ events:[
+ {id:1,title:'NASA Space Apps Kathmandu',org:'Kathmandu Living Labs',off:2,price:'Rs 500',st:'paid'},
+ {id:2,title:'Pokhara Youth Hackathon',org:'Fewa Tech Club',off:5,price:'Free',st:'interested'},
+ {id:3,title:'Everest MUN 2026',org:'Himalayan MUN Society',off:12,price:'Rs 1,500',st:'paid'},
+ {id:4,title:'Nepal Robotics Challenge',org:'IOE Pulchowk',off:20,price:'Rs 800',st:'interested'}],
+ msgs:{sita:[{m:0,t:'Congrats on the finals, Ram!'}],nabin:[{m:0,t:'Are you joining Everest MUN?'}],priya:[{m:0,t:'Practice at 6 tomorrow?'}],bikash:[{m:0,t:'Sent you the mural photos.'}]}};
+const P=id=>people.find(p=>p.id===id);
+const av=(n,c='w-10 h-10 text-sm')=>`<div class="${c} rounded-full bg-gradient-to-br from-slate-700 to-indigo-500 grid place-items-center text-white font-bold shrink-0">${ini(n)}</div>`;
+const name=p=>p.by==='me'?ME.name:P(p.by).name;
+
+function connBtn(p){return p.connected?`<button data-c="${p.id}" disabled class="px-3 py-1.5 rounded-lg text-xs font-bold border border-emerald-500 text-emerald-600 bg-emerald-50 cursor-default">✓ Connected</button>`:`<button data-c="${p.id}" onclick="connect('${p.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all">+ Connect</button>`;}
+function connect(id){const p=P(id);p.connected=true;if(!S.msgs[id])S.msgs[id]=[{m:0,t:'Hi Ram, thanks for connecting!'}];
+ document.querySelectorAll(`[data-c="${id}"]`).forEach(b=>b.outerHTML=connBtn(p));if($('stories'))$('stories').innerHTML=storiesHTML();lucide.createIcons();}
+
+function storiesHTML(){return people.filter(p=>p.connected).map(p=>`<button onclick="openStory('${p.id}')" class="shrink-0 w-16 text-center active:scale-95 transition-all"><div class="ring-g rounded-full"><div class="bg-white rounded-full p-0.5">${av(p.name,'w-14 h-14')}</div></div><div class="text-[11px] mt-1 truncate font-medium">${esc(p.name.split(' ')[0])}</div></button>`).join('');}
+function card(p){const a=p.by==='me'?{name:ME.name}:P(p.by);return `<article class="bg-white border-y border-slate-200 rise">
+ <div class="flex items-center gap-3 p-3">${av(a.name)}<div class="flex-1"><div class="font-bold text-sm leading-tight">${esc(a.name)}</div><div class="text-xs text-slate-500">${p.time}</div></div><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${CAT[p.cat]}">${p.cat}</span></div>
+ <div class="px-3"><div class="flex items-start gap-1.5"><h3 class="font-extrabold text-lg tracking-tight leading-snug">${esc(p.title)}</h3><i data-lucide="badge-check" class="w-5 h-5 mt-0.5 shrink-0 text-emerald-500"></i></div>
+ <dl class="mt-2 grid grid-cols-[84px_1fr] gap-y-1 text-sm"><dt class="text-slate-500">Organizer</dt><dd class="font-medium">${esc(p.org)}</dd><dt class="text-slate-500">Event</dt><dd>${esc(p.details||'Self-reported event')}</dd><dt class="text-slate-500">Date</dt><dd>${p.date}</dd><dt class="text-slate-500">Achieved</dt><dd class="leading-snug">${esc(p.won)}</dd></dl></div>
+ <div class="cert m-3 rounded-xl p-4 text-white ring-1 ring-white/10 shadow-[0_0_28px_-8px_#6366f1]"><div class="text-xs text-indigo-200">Certificate of achievement</div><div class="font-bold mt-1 tracking-tight">${esc(p.title)}</div><div class="mt-3 flex justify-between text-xs text-slate-300"><span>${esc(a.name)} · ${p.date}</span><span class="flex items-center gap-1 text-emerald-300"><i data-lucide="shield-check" class="w-4 h-4"></i>Verified</span></div></div></article>`;}
+function discover(){const l=people.filter(p=>!p.connected);if(!l.length)return '';return `<section class="bg-white border-y border-slate-200 py-3"><div class="px-3 font-bold text-sm mb-2">People you may know</div><div class="flex gap-3 overflow-x-auto hsb px-3">${l.map(p=>`<div class="shrink-0 w-36 border border-slate-200 rounded-xl p-3 text-center">${av(p.name,'w-14 h-14 mx-auto')}<div class="font-semibold text-sm mt-2 truncate">${esc(p.name)}</div><div class="text-[11px] text-slate-500 mb-2">${p.sub}</div>${connBtn(p)}</div>`).join('')}</div></section>`;}
+
+const V={
+home(){const list=S.posts.filter(p=>S.filter==='All'||p.cat===S.filter).slice(0,4);let out='';
+ list.forEach((p,i)=>{out+=card(p);if((i+1)%2===0)out+=discover();});
+ if(!list.length)out='<p class="text-center text-sm text-slate-500 p-8">No posts in this category yet.</p>';
+ return `<div class="bg-white p-3"><div id="stories" class="flex gap-3 overflow-x-auto hsb">${storiesHTML()}</div></div>
+ <div class="bg-white px-3 pb-3 flex gap-2 overflow-x-auto hsb">${FILTERS.map(f=>`<button onclick="S.filter='${f}';render()" class="shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border active:scale-95 transition-all ${S.filter===f?'bg-slate-900 text-white border-slate-900':'bg-white text-slate-600 border-slate-200'}">${f}</button>`).join('')}</div>
+ <div class="space-y-3 mt-1">${out}</div><div class="text-center py-10 px-6"><div class="font-extrabold text-lg tracking-tight">✨ You're all caught up for today! 🇳🇵</div><div class="text-sm text-slate-500 mt-1">Come back tomorrow for new achievements.</div></div>`;},
+saved(){const ev=[...S.events].sort((a,b)=>a.off-b.off),u=ev[0];
+ const mini=e=>`<div class="bg-white border border-slate-200 rounded-xl p-3 mb-2"><div class="font-bold text-sm leading-snug">${esc(e.title)}</div><div class="text-xs text-slate-500">${esc(e.org)}</div><div class="text-xs mt-1">${day(e.off)} · ${e.price}</div>${e.st==='interested'?`<button onclick="pay(${e.id})" class="mt-2 w-full py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white active:scale-95 transition-all">Register &amp; pay</button>`:'<div class="mt-2 text-xs font-bold text-emerald-600">✓ Paid</div>'}</div>`;
+ const col=(t,s)=>`<div><h4 class="font-bold text-sm mb-2">${t}</h4>${ev.filter(e=>e.st===s).map(mini).join('')||'<p class="text-xs text-slate-400">Nothing here yet.</p>'}</div>`;
+ return `<div class="p-4"><h2 class="font-extrabold text-xl tracking-tight mb-3">Saved events</h2>
+ ${u?`<div class="cert rounded-2xl p-5 text-white mb-4"><div class="text-xs text-indigo-200">Up next</div><div class="font-extrabold text-lg mt-1 tracking-tight">${esc(u.title)}</div><div class="text-sm text-slate-300">${esc(u.org)} · ${day(u.off)}</div><div class="pop inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-full bg-emerald-400 text-slate-900 text-sm font-extrabold"><i data-lucide="timer" class="w-4 h-4"></i>${u.off} days remaining</div></div>`:''}
+ <div class="grid grid-cols-2 gap-3">${col('Interested to Participate','interested')}${col('Paid &amp; Registered','paid')}</div></div>`;},
+chat(){if(S.chat){const p=P(S.chat);return `<div class="flex flex-col" style="height:calc(100vh - 7.5rem)"><div class="flex items-center gap-3 p-3 bg-white border-b border-slate-200"><button onclick="S.chat=null;render()" aria-label="Back" class="p-1.5 rounded-lg hover:bg-slate-100 active:scale-95 transition-all"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>${av(p.name)}<div class="font-bold text-sm">${esc(p.name)}</div></div>
+ <div id="msgs" class="flex-1 overflow-y-auto p-3 space-y-2">${S.msgs[S.chat].map(bubble).join('')}</div>
+ <div class="p-3 bg-white border-t border-slate-200 flex gap-2"><input id="mIn" class="inp" placeholder="Message…" onkeydown="if(event.key==='Enter')send()"><button onclick="send()" aria-label="Send" class="px-3 rounded-lg bg-indigo-600 text-white active:scale-95 transition-all"><i data-lucide="send" class="w-4 h-4"></i></button></div></div>`;}
+ const l=people.filter(p=>p.connected);return `<div class="p-4"><h2 class="font-extrabold text-xl tracking-tight mb-3">Messages</h2><div class="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">${l.map(p=>{const m=S.msgs[p.id]||[],last=m[m.length-1];return `<button onclick="S.chat='${p.id}';render()" class="w-full flex items-center gap-3 p-3 text-left hover:bg-slate-50 active:scale-[.99] transition-all">${av(p.name,'w-11 h-11')}<div class="min-w-0"><div class="font-bold text-sm">${esc(p.name)}</div><div class="text-xs text-slate-500 truncate">${last?esc(last.t):'Say hello'}</div></div></button>`}).join('')}</div></div>`;},
+profile(){const mine=S.posts.filter(p=>p.by==='me');
+ const head=S.edit?`<input id="eName" class="inp mb-2" value="${esc(ME.name)}" placeholder="Name"><input id="eGrade" class="inp mb-2" value="${esc(ME.grade)}" placeholder="Grade"><textarea id="eBio" rows="3" class="inp mb-2" placeholder="Bio">${esc(ME.bio)}</textarea><p id="pErr" class="text-sm text-rose-600 hidden mb-2">Name and grade can’t be empty.</p><div class="flex gap-2"><button onclick="saveProfile()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 active:scale-95 transition-all">Save changes</button><button onclick="S.edit=false;render()" class="px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 active:scale-95 transition-all">Cancel</button></div>`
+ :`<h2 class="font-extrabold text-xl tracking-tight">${esc(ME.name)}</h2><p class="text-sm text-slate-500">${esc(ME.grade)} · ${ME.loc}</p><p class="text-sm mt-2 leading-relaxed">${esc(ME.bio)}</p><button onclick="S.edit=true;render()" class="mt-3 px-4 py-2 rounded-lg text-sm font-semibold border border-slate-300 active:scale-95 transition-all">Edit Profile</button>`;
+ return `<div class="bg-white"><div class="h-24 bg-gradient-to-r from-slate-900 via-indigo-700 to-emerald-500"></div><div class="px-4 pb-4 -mt-9">${av(ME.name,'w-[72px] h-[72px] text-2xl ring-4 ring-white mb-2')}${head}</div></div>
+ <div class="p-4"><div class="grid grid-cols-2 gap-3"><button onclick="openAdd()" class="py-3 rounded-xl text-sm font-bold text-white bg-indigo-600 active:scale-95 transition-all flex items-center justify-center gap-1.5"><i data-lucide="plus" class="w-4 h-4"></i>Add Achievement</button><button onclick="openCV()" class="py-3 rounded-xl text-sm font-bold text-white bg-slate-900 active:scale-95 transition-all flex items-center justify-center gap-1.5"><i data-lucide="file-text" class="w-4 h-4"></i>CV Builder</button></div>
+ <h3 class="font-bold mt-5 mb-2">My achievements (${mine.length})</h3><div class="space-y-2">${mine.map(p=>`<div class="bg-white border border-slate-200 rounded-xl p-3"><div class="font-bold text-sm">${esc(p.title)}</div><div class="text-xs text-slate-500">${esc(p.org)} · ${p.date}</div></div>`).join('')}</div></div>`;}
+};
+const bubble=m=>`<div class="flex ${m.m?'justify-end':''}"><div class="max-w-[78%] px-3 py-2 rounded-2xl text-sm ${m.m?'bg-indigo-600 text-white rounded-br-sm':'bg-white border border-slate-200 rounded-bl-sm'}">${esc(m.t)}</div></div>`;
+function send(){const i=$('mIn'),t=i.value.trim(),id=S.chat;if(!t)return;S.msgs[id].push({m:1,t});$('msgs').insertAdjacentHTML('beforeend',bubble({m:1,t}));i.value='';$('msgs').scrollTop=1e9;
+ setTimeout(()=>{const r={t:'Sounds great, let’s do it!'};S.msgs[id].push(r);if(S.chat===id&&$('msgs')){$('msgs').insertAdjacentHTML('beforeend',bubble(r));$('msgs').scrollTop=1e9;}},1000);}
+function pay(id){S.events.find(e=>e.id===id).st='paid';render();}
+function saveProfile(){const n=$('eName').value.trim(),g=$('eGrade').value.trim();if(!n||!g){$('pErr').classList.remove('hidden');return;}ME.name=n;ME.grade=g;ME.bio=$('eBio').value.trim();S.edit=false;render();}
+
+const TABS=[['home','house','Home'],['saved','bookmark','Saved'],['chat','message-circle','Chats'],['profile','user','Profile']];
+function render(){
+ $('view').innerHTML=V[S.tab]();
+ $('nav').innerHTML=TABS.map(([k,i,l])=>`<button onclick="S.tab='${k}';S.chat=null;S.edit=false;render();scrollTo(0,0)" class="py-2.5 flex flex-col items-center gap-0.5 text-[11px] font-semibold active:scale-95 transition-all ${S.tab===k?'text-indigo-600':'text-slate-400'}"><i data-lucide="${i}" class="w-5 h-5"></i>${l}</button>`).join('');
+ $('hdr').innerHTML=`<span class="text-slate-600">${esc(ME.name.split(' ')[0])}</span>${av(ME.name,'w-8 h-8 text-xs')}`;
+ lucide.createIcons();}
+
+/* Stories */
+function openStory(id){const p=P(id),po=S.posts.find(x=>x.by===id)||{title:'New achievement',org:'EcaScroll',date:day(0)},s=$('story');
+ s.innerHTML=`<div class="w-full max-w-sm" onclick="event.stopPropagation()"><div class="h-1 bg-white/30 rounded-full overflow-hidden mb-3"><div id="sbar" class="h-full bg-white" style="width:0;transition:width 5s linear"></div></div>
+ <div class="flex items-center gap-2 text-white mb-3">${av(p.name,'w-9 h-9 text-xs')}<span class="font-bold text-sm flex-1">${esc(p.name)}</span><button onclick="closeStory()" aria-label="Close" class="p-1.5 active:scale-95 transition-all"><i data-lucide="x" class="w-6 h-6"></i></button></div>
+ <div class="cert rounded-2xl p-6 text-white ring-1 ring-white/20 shadow-[0_0_40px_-8px_#6366f1] min-h-[300px] flex flex-col justify-between"><div class="text-xs text-indigo-200">Certificate of achievement</div><div><div class="font-extrabold text-2xl tracking-tight leading-tight">${esc(po.title)}</div><div class="text-sm text-slate-300 mt-2">${esc(po.org)}</div></div><div class="flex justify-between text-xs text-slate-300"><span>${po.date}</span><span class="flex items-center gap-1 text-emerald-300"><i data-lucide="shield-check" class="w-4 h-4"></i>Verified</span></div></div></div>`;
+ s.classList.remove('hidden');s.classList.add('flex');lucide.createIcons();requestAnimationFrame(()=>requestAnimationFrame(()=>{const b=$('sbar');if(b)b.style.width='100%';}));
+ clearTimeout(S.timer);S.timer=setTimeout(closeStory,5000);}
+function closeStory(){clearTimeout(S.timer);const s=$('story');s.classList.add('hidden');s.classList.remove('flex');}
+
+/* Modals */
+const closeM=id=>{$(id).classList.add('hidden');$(id).classList.remove('flex');};
+const openM=id=>{$(id).classList.remove('hidden');$(id).classList.add('flex');};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){['addM','cvM'].forEach(closeM);closeStory();}});
+let fileOk=false,busy=false;
+const DROP='<i data-lucide="upload-cloud" class="w-8 h-8 mx-auto text-indigo-500"></i><p class="text-sm mt-2 font-medium">Drop your certificate or click to browse</p><p class="text-xs text-slate-500">PNG, JPG or PDF</p>';
+function openAdd(){$('fCat').innerHTML=FILTERS.slice(1).map(c=>`<option>${c}</option>`).join('');['fTitle','fOrg','fDesc','fFile'].forEach(i=>$(i).value='');fileOk=busy=false;$('err').classList.add('hidden');$('dropIn').innerHTML=DROP;openM('addM');lucide.createIcons();}
+function handleFile(f){if(!f||busy)return;busy=true;fileOk=false;
+ $('dropIn').innerHTML=`<p class="text-sm font-semibold truncate">${esc(f.name)}</p><div class="h-2 bg-slate-200 rounded-full mt-3 overflow-hidden"><div id="bar" class="h-full bg-gradient-to-r from-indigo-500 to-emerald-500" style="width:0;transition:width 1.5s ease"></div></div><p class="text-xs text-slate-500 mt-2">Scanning certificate…</p>`;
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{const b=$('bar');if(b)b.style.width='100%';}));
+ setTimeout(()=>{busy=false;fileOk=true;$('dropIn').innerHTML=`<i data-lucide="check-circle-2" class="w-8 h-8 mx-auto text-emerald-600"></i><p class="text-sm font-bold text-emerald-600 mt-1">Verified by AI OCR</p><p class="text-xs text-slate-500">${esc(f.name)}</p>`;lucide.createIcons();},1500);}
+$('fFile').addEventListener('change',e=>handleFile(e.target.files[0]));
+const dz=$('drop');['dragover','dragenter'].forEach(v=>dz.addEventListener(v,e=>e.preventDefault()));dz.addEventListener('drop',e=>{e.preventDefault();handleFile(e.dataTransfer.files[0]);});
+function submitAdd(){const t=$('fTitle').value.trim(),d=$('fDesc').value.trim(),er=$('err'),f=m=>{er.textContent=m;er.classList.remove('hidden');};
+ if(!t)return f('Add an activity title.');if(!d)return f('Add a short description.');if(busy)return f('Wait for the scan to finish.');if(!fileOk)return f('Upload a certificate to verify it.');
+ S.posts.unshift({by:'me',cat:$('fCat').value,title:t,org:$('fOrg').value.trim()||'Self-reported',details:'',date:new Date().toLocaleString('en',{month:'short',year:'numeric'}),time:'Just now',won:d});
+ S.filter='All';closeM('addM');render();}
+
+/* CV */
+function openCV(){tpls();$('cvPrev').innerHTML=cvHTML();openM('cvM');lucide.createIcons();}
+function tpls(){$('tpls').innerHTML=[['harvard','Harvard Standard','US style'],['europass','Europass','European format']].map(([k,n,s])=>`<button onclick="S.cv='${k}';tpls();$('cvPrev').innerHTML=cvHTML()" class="text-left p-3 rounded-xl border-2 active:scale-95 transition-all ${S.cv===k?'border-indigo-600 bg-indigo-50':'border-slate-200'}"><div class="font-bold text-sm">${n}</div><div class="text-xs text-slate-500">${s}</div></button>`).join('');}
+function cvHTML(){const m=S.posts.filter(p=>p.by==='me');
+ if(S.cv==='harvard')return `<div id="cvDoc" class="bg-white shadow border border-slate-200 mx-auto max-w-[720px] p-7" style="font-family:Georgia,serif;color:#111;min-width:480px"><div class="text-center border-b border-black pb-2"><div class="text-2xl font-bold">${esc(ME.name)}</div><div class="text-xs mt-1">${ME.loc} · ${ME.email}</div></div>
+ <h4 class="mt-4 text-sm font-bold border-b border-black">EDUCATION</h4><div class="flex justify-between text-sm mt-1"><b>${ME.school}</b><span>${esc(ME.grade)}</span></div><p class="text-[13px] mt-1">${esc(ME.bio)}</p>
+ <h4 class="mt-4 text-sm font-bold border-b border-black">EXTRACURRICULAR ACTIVITIES &amp; AWARDS</h4>${m.map(i=>`<div class="mt-2 text-sm"><div class="flex justify-between"><b>${esc(i.title)}</b><span>${i.date}</span></div><div class="italic text-xs">${esc(i.org)} · Credential verified</div><div class="text-[13px] leading-snug">${esc(i.won)}</div></div>`).join('')}</div>`;
+ return `<div id="cvDoc" class="bg-white shadow border border-slate-200 mx-auto max-w-[720px] grid grid-cols-[190px_1fr] min-h-[420px]" style="min-width:480px"><div class="p-5 text-white" style="background:#003399"><div class="w-14 h-14 rounded-full bg-white/20 grid place-items-center font-bold text-lg">${ini(ME.name)}</div><div class="mt-3 font-bold">${esc(ME.name)}</div><div class="mt-4 text-xs font-bold text-blue-200">Contact</div><div class="text-xs mt-1 break-words">${ME.email}<br>${ME.loc}</div><div class="mt-4 text-xs font-bold text-blue-200">Education</div><div class="text-xs mt-1">${ME.school}<br>${esc(ME.grade)}</div></div>
+ <div class="p-6"><h4 class="font-bold pb-1 border-b-2" style="color:#003399;border-color:#003399">Achievements</h4>${m.map(i=>`<div class="mt-3 grid grid-cols-[72px_1fr] gap-3 text-sm"><div class="text-xs text-slate-500">${i.date}</div><div><div class="font-bold">${esc(i.title)}</div><div class="text-xs" style="color:#003399">${esc(i.org)}</div><div class="text-[13px] leading-snug text-slate-700">${esc(i.won)}</div></div></div>`).join('')}</div></div>`;}
+function exportCV(){$('print-root').innerHTML=cvHTML();setTimeout(()=>window.print(),50);}
+
+render();
+</script>
+</body>
+</html>
