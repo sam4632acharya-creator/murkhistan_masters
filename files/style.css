@@ -1,0 +1,236 @@
+/* style.css = how the site LOOKS. Colors, fonts, spacing, layout. */
+
+/* ---- COLOR THEME: change a color here and it changes everywhere ---- */
+:root {
+  --ink:     #14213d;  /* deep indigo: dark backgrounds, text */
+  --gold:    #f2a900;  /* marigold: buttons and highlights */
+  --crimson: #c1272d;  /* Nepal-flag red: accents */
+  --mist:    #f4f6fa;  /* cool off-white page background */
+  --slate:   #4a5568;  /* softer text color */
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }  /* removes default browser spacing */
+
+body {
+  font-family: "Mukta", system-ui, sans-serif;
+  background: var(--mist);
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+/* ===== TOP BAR ===== */
+.topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: .75rem;
+  padding: .9rem 2rem;
+  background: var(--ink);
+  position: sticky; top: 0; z-index: 10;   /* stays at the top while scrolling */
+}
+.logo { font-family: "Fraunces", Georgia, serif; font-size: 1.5rem; font-weight: 700; color: #fff; text-decoration: none; }
+.logo-np { color: var(--gold); font-family: "Mukta", sans-serif; font-size: 1.05rem; margin-left: .4rem; }
+.nav { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.nav-link { color: #dfe5f1; text-decoration: none; font-weight: 600; margin-right: .5rem; }
+.nav-link:hover { color: var(--gold); }
+
+/* The gold pill button (used for Sign in, Join, Subscribe) */
+.btn {
+  display: inline-block; border: none; cursor: pointer;
+  background: var(--gold); color: var(--ink);
+  font: inherit; font-weight: 700;
+  padding: .5rem 1.2rem; border-radius: 999px; text-decoration: none;
+  transition: background .2s;
+}
+.btn:hover { background: #ffc233; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+/* ===== CAROUSEL ===== */
+.carousel { position: relative; height: 78vh; min-height: 460px; overflow: hidden; color: #fff; background: var(--ink); }
+.slides, .slide { position: absolute; inset: 0; }
+
+/* SMOOTH TRANSITION: the old slide stays visible underneath (z-index 1) until the new one
+   has fully faded in on top (z-index 2). This avoids the dip/flicker of a plain cross-fade. */
+.slide { opacity: 1; z-index: 1; transition: opacity 0s linear 1.6s; }     /* old slide: disappears AFTER the delay */
+.slide.active { opacity: 1; z-index: 2; transition: none; }
+.slide:not(.active) { opacity: 0; }
+.slide.active .slide-img { animation: fadein 1.6s ease-in-out both; }      /* new image fades in on top */
+.slide.active .slide-text { animation: textin 1.6s ease-out both; }
+
+/* Slow zoom ("Ken Burns") while a slide is showing makes the motion feel alive */
+.slide-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover;                      /* fills the banner without stretching the photo */
+  transform: scale(1);
+}
+.slide.active .slide-img { transform: scale(1.07); transition: transform 8s linear; }
+
+/* Dark gradient over the photo so white text is always readable */
+.slide::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(20,33,61,.82) 0%, rgba(20,33,61,.45) 55%, rgba(20,33,61,.15) 100%);
+}
+.slide-text {
+  position: absolute; z-index: 1; inset: 0;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 0 clamp(3.5rem, 9vw, 8rem);
+}
+.fact { font-family: "Fraunces", Georgia, serif; font-size: clamp(1.8rem, 4.2vw, 3.2rem); line-height: 1.2; max-width: 17em; }
+.fact.quote::before { content: "\201C"; color: var(--gold); }
+.fact.quote::after  { content: "\201D"; color: var(--gold); }
+.sub { margin-top: 1rem; font-size: 1.2rem; color: #e6ebf5; max-width: 30em; }
+
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+@keyframes textin { 0%, 35% { opacity: 0; transform: translateY(14px); } 100% { opacity: 1; transform: none; } }
+
+/* Corner citations (photo credit bottom-left, fact source bottom-right). */
+.credit {
+  position: absolute; bottom: .8rem; z-index: 3; max-width: 36%;
+  font-size: .72rem; line-height: 1.35;
+  background: rgba(0,0,0,.45); padding: .3rem .6rem; border-radius: 6px;
+}
+.credit a { color: #fff; text-decoration: underline; }
+.credit-left  { left: .8rem; }    /* photo credit */
+.credit-right { right: .8rem; text-align: right; }   /* fact source */
+
+
+.arrow {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 4;
+  background: rgba(255,255,255,.18); color: #fff; border: none; cursor: pointer;
+  width: 2.6rem; height: 2.6rem; border-radius: 50%; font-size: 1.1rem;
+}
+.arrow:hover { background: rgba(255,255,255,.35); }
+.prev { left: .8rem; } .next { right: .8rem; }
+
+.dots { position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; gap: .55rem; }
+.dot { width: .75rem; height: .75rem; border-radius: 50%; border: none; background: rgba(255,255,255,.45); cursor: pointer; }
+.dot.active { background: var(--gold); }
+
+/* ===== EMPTY MIDDLE SPACE (for later) ===== */
+.content { min-height: 280px; display: grid; place-items: center; padding: 3rem 1.5rem; text-align: center; color: var(--slate); }
+
+/* ===== FOOTER ===== */
+.footer {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2.5rem;
+  background: var(--ink); color: #dfe5f1; padding: 3rem 2rem;
+}
+.footer-brand { max-width: 22rem; }
+.footer-brand p { margin-top: .6rem; color: #b8c2d6; }
+.footer-right { display: flex; flex-direction: column; gap: 1.5rem; align-items: flex-end; flex: 1 1 28rem; }
+
+.socials { display: flex; gap: .7rem; }   /* horizontal row of icons */
+.social {
+  width: 2.5rem; height: 2.5rem; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 1.5px solid #5b6a8a; color: #fff; text-decoration: none; font-weight: 700;
+  transition: background .2s, color .2s;
+}
+.social:hover { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+
+.footer-row { display: flex; flex-wrap: wrap; gap: 2.5rem; justify-content: flex-end; align-items: flex-start; }
+.newsletter { max-width: 22rem; }
+.newsletter label { display: block; font-weight: 600; margin-bottom: .4rem; color: #fff; }
+.news-field { display: flex; gap: .4rem; background: #fff; border-radius: 999px; padding: .25rem; }  /* rounded box */
+.news-field input { flex: 1; min-width: 0; border: none; background: transparent; padding: 0 .9rem; font: inherit; color: var(--ink); }
+.news-msg { min-height: 1.4rem; margin-top: .3rem; font-size: .9rem; color: var(--gold); }
+.footer-links { display: flex; flex-direction: column; gap: .4rem; }
+.footer-links a { color: #dfe5f1; text-decoration: none; }
+.footer-links a:hover { color: var(--gold); }
+
+/* ===== ABOUT PAGE ===== */
+.about { max-width: 46rem; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+.about h1 { font-family: "Fraunces", Georgia, serif; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.15; margin-bottom: 1.5rem; }
+.about h2 { font-family: "Fraunces", Georgia, serif; margin: 2rem 0 .5rem; color: var(--crimson); }
+.about p, .about li { color: var(--slate); font-size: 1.1rem; }
+.about ol { padding-left: 1.3rem; }
+.about li { margin-bottom: .6rem; }
+.about .cta { text-align: center; margin-top: 2.5rem; }  /* centers the join button */
+
+/* ===== PHONES ===== */
+@media (max-width: 700px) {
+  .topbar { padding: .8rem 1rem; }
+  .slide-text { padding: 0 3.5rem 2rem 1.5rem; }
+  .dots { bottom: 3.6rem; }            /* lift dots above the corner citations */
+  .credit { max-width: 46%; }
+  
+/* Visitors who ask their device for less motion get no zoom or slide animation */
+@media (prefers-reduced-motion: reduce) {
+  .slide.active .slide-img, .slide.active .slide-text { animation: none; transition: none; }
+}
+
+/* =====================================================================
+   POP-UP (sign in / join / account settings) AND USER MENU
+   ===================================================================== */
+.auth-area { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+/* Dim layer: only a visual tint. pointer-events:none means the page behind it keeps working. */
+.modal-dim { position: fixed; inset: 0; z-index: 40; background: rgba(10,16,32,.38); opacity: 0; pointer-events: none; transition: opacity .35s ease; }
+.modal-dim.show { opacity: 1; }
+
+.modal {
+  position: fixed; z-index: 50; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: min(460px, 100%); max-height: 92vh; overflow-y: auto;
+  background: #fff; color: var(--ink);
+  border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.25);
+  animation: slideUp .38s cubic-bezier(.22,.9,.3,1) both;   /* comes up from the bottom */
+}
+.modal[hidden] { display: none; }
+.modal.closing { animation: slideDown .3s ease-in both; }    /* goes back down when closed */
+@keyframes slideUp   { from { transform: translate(-50%, 100%); } to { transform: translate(-50%, 0); } }
+@keyframes slideDown { from { transform: translate(-50%, 0); }    to { transform: translate(-50%, 100%); } }
+
+.modal-head { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.2rem 0; }
+.modal-tabs { display: flex; gap: .4rem; }
+.tab { border: none; background: none; cursor: pointer; font: inherit; font-weight: 700; color: var(--slate); padding: .35rem .9rem; border-radius: 999px; }
+.tab.active { background: var(--ink); color: #fff; }
+.modal-title { font-family: "Fraunces", Georgia, serif; font-size: 1.3rem; padding-left: .3rem; }
+.modal-close { border: none; background: none; cursor: pointer; font-size: 1.8rem; line-height: 1; color: var(--slate); padding: 0 .4rem; }
+.modal-close:hover { color: var(--crimson); }
+
+.modal-body { padding: 1.2rem 1.4rem 1.6rem; }
+.modal-body label.lbl { display: block; font-weight: 600; font-size: .92rem; margin: .8rem 0 .25rem; }
+.modal-body input[type=text], .modal-body input[type=email], .modal-body input[type=password] {
+  width: 100%; font: inherit; padding: .6rem .8rem; border: 1.5px solid #cfd6e4; border-radius: 10px; background: #fff; color: var(--ink);
+}
+.modal-body input:focus { border-color: var(--ink); }
+.row-between { display: flex; justify-content: space-between; align-items: center; margin-top: .5rem; font-size: .9rem; }
+.row-between a { color: var(--crimson); text-decoration: none; font-weight: 600; }
+.check { display: flex; align-items: center; gap: .4rem; cursor: pointer; color: var(--slate); }
+.form-msg { min-height: 1.3rem; margin: .7rem 0 .2rem; font-size: .9rem; color: var(--crimson); }
+.form-msg.ok { color: #1b7f4b; }
+.note { font-size: .85rem; color: var(--slate); margin-top: .6rem; }
+
+.btn-block { width: 100%; padding: .7rem 1rem; font-size: 1.02rem; }
+.btn-row { display: flex; gap: .6rem; }
+.btn-row .btn { flex: 1; padding: .7rem .4rem; }
+.btn-ghost { background: var(--ink); color: #fff; }
+.btn-ghost:hover { background: #24365f; }
+.btn-danger { background: var(--crimson); color: #fff; }
+.btn-danger:hover { background: #a01f24; }
+
+.divider { display: flex; align-items: center; gap: .8rem; margin: 1.1rem 0; color: var(--slate); font-size: .9rem; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #d9dfeb; }
+.google-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: .6rem;
+  font: inherit; font-weight: 600; padding: .65rem; cursor: pointer;
+  background: #fff; color: var(--ink); border: 1.5px solid #cfd6e4; border-radius: 999px;
+}
+.google-btn:hover { background: var(--mist); }
+.google-btn .g { font-weight: 700; font-size: 1.15rem; color: #4285f4; }
+
+/* Logged-in user chip + dropdown (no logo, just the person's initial) */
+.user-wrap { position: relative; }
+.user-btn { display: flex; align-items: center; gap: .5rem; border: none; cursor: pointer; background: rgba(255,255,255,.1); color: #fff; font: inherit; font-weight: 600; padding: .25rem .8rem .25rem .3rem; border-radius: 999px; }
+.user-btn:hover { background: rgba(255,255,255,.2); }
+.avatar { width: 2rem; height: 2rem; border-radius: 50%; background: var(--gold); color: var(--ink); display: grid; place-items: center; font-weight: 700; }
+.user-menu { position: absolute; right: 0; top: calc(100% + .5rem); min-width: 230px; z-index: 60; background: #fff; color: var(--ink); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.25); padding: .5rem; }
+.user-menu[hidden] { display: none; }
+.menu-head { padding: .5rem .7rem .7rem; border-bottom: 1px solid #e3e8f2; margin-bottom: .3rem; }
+.menu-head small { display: block; color: var(--slate); }
+.role-pill { display: inline-block; margin-top: .3rem; font-size: .75rem; font-weight: 700; background: var(--gold); color: var(--ink); padding: .05rem .6rem; border-radius: 999px; }
+.menu-item { display: block; width: 100%; text-align: left; border: none; background: none; cursor: pointer; font: inherit; padding: .5rem .7rem; border-radius: 8px; color: var(--ink); }
+.menu-item:hover { background: var(--mist); }
+.menu-item.danger { color: var(--crimson); }
+
+.toast { position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%); z-index: 70; background: var(--ink); color: #fff; padding: .6rem 1.2rem; border-radius: 999px; box-shadow: 0 6px 20px rgba(0,0,0,.3); animation: fadein .3s both; }
+
+@media (max-width: 700px) { .auth-area { gap: .5rem; } }
+@media (prefers-reduced-motion: reduce) { .modal, .modal.closing { animation: none; } }
