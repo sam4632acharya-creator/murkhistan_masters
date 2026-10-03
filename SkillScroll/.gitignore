@@ -1,0 +1,6 @@
+.env
+data.json
+skillscroll.db
+uploads/
+node_modules/
+.DS_Store
