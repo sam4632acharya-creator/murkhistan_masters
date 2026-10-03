@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcaScroll · Academic Opportunity Portal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.383.0/dist/umd/lucide.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Figtree',system-ui,sans-serif;background:#f8fafc;color:#0f172a}
+.hsb::-webkit-scrollbar{display:none}.hsb{scrollbar-width:none}
+.inp{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.5rem .7rem;font-size:.875rem;outline:none;background:#fff}.inp:focus{box-shadow:0 0 0 2px #6366f1;border-color:#6366f1}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}.rise{animation:rise .25s ease both}
+@keyframes slide{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}.slide{animation:slide .25s ease both}
+#print-root{display:none}
+@media print{body>*:not(#print-root){display:none!important}#print-root{display:block!important}#cvDoc{box-shadow:none!important;border:0!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="lg:grid lg:grid-cols-[260px_minmax(0,1fr)_330px] min-h-screen">
+  <aside id="left" class="hidden lg:block bg-white border-r border-slate-200"></aside>
+  <div class="min-w-0">
+    <header class="lg:hidden sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200 h-14 px-4 flex items-center justify-between">
+      <div class="flex items-center gap-2 font-extrabold tracking-tight"><span class="w-8 h-8 rounded-lg bg-indigo-600 grid place-items-center text-white"><i data-lucide="graduation-cap" class="w-4 h-4"></i></span>EcaScroll</div>
+      <div class="w-8 h-8 rounded-full bg-indigo-600 text-white grid place-items-center text-xs font-bold" data-bind="ini"></div>
+    </header>
+    <main id="view" class="p-4 lg:p-8 pb-28 lg:pb-8"></main>
+  </div>
+  <aside id="right" class="hidden lg:block bg-white border-l border-slate-200"></aside>
+</div>
+<nav id="nav" class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/90 backdrop-blur-md border-t border-slate-200 grid grid-cols-3"></nav>
+
+<div id="insM" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md" onclick="if(event.target===this)closeM('insM')"><div id="insB" class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl rise"></div></div>
+<div id="drawer" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-md" onclick="if(event.target===this)closeM('drawer')"><div id="drawB" class="slide ml-auto h-full w-full max-w-md bg-white shadow-2xl overflow-y-auto"></div></div>
+<div id="refM" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md" onclick="if(event.target===this)closeM('refM')"><div id="refB" class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl rise"></div></div>
+<div id="toast" class="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[60] hidden px-4 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium shadow-xl max-w-[90vw]"></div>
+<div id="print-root"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ini=n=>(n.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2)||'S').toUpperCase();
+const btn='active:scale-95 transition-all duration-200';
+const day=(o,y)=>new Date(Date.now()+o*864e5).toLocaleDateString('en',y?{month:'short',year:'numeric'}:{month:'short',day:'numeric'});
+const CAT={Hackathons:['bg-indigo-50 text-indigo-700','bg-indigo-500'],MUNs:['bg-amber-50 text-amber-700','bg-amber-500'],Sports:['bg-emerald-50 text-emerald-700','bg-emerald-500'],Arts:['bg-rose-50 text-rose-700','bg-rose-500']};
+const FILTERS=['All','Hackathons','MUNs','Sports','Arts'];
+const ME={name:'Ram Bahadur',grade:'Grade 12, Science',loc:'Kathmandu, Nepal',school:'Budhanilkantha School',email:'ram.bahadur@example.com',bio:'Physics enthusiast and weekend coder, building tools that help Nepali students learn offline.'};
+const dn=()=>ME.name.trim()||'Student';
+const peers=[
+ {id:'sita',name:'Sita Rai',ins:{kind:'cert',title:'1st Place, Himalayan Hack 2026',by:'KU Computer Science Club',when:'2h ago'}},
+ {id:'nabin',name:'Nabin Shrestha',ins:{kind:'text',text:'Registering for Everest MUN this month. Looking for two more delegates for the climate committee.',when:'5h ago'}},
+ {id:'priya',name:'Priya Thapa',ins:{kind:'cert',title:'Captain, Inter-School Basketball Cup',by:'Nepal Schools Sports Council',when:'1d ago'}},
+ {id:'bikash',name:'Bikash Gurung',ins:{kind:'text',text:'Finished my Youth Art Biennale mural. Happy to share portfolio tips for Madhubani Art Fest applicants.',when:'2d ago'}}];
+const network=[{id:'anisha',name:'Anisha Lama',sub:'Grade 11 · Pokhara · Robotics',connected:false},{id:'rohan',name:'Rohan Tamang',sub:'Grade 12 · Lalitpur · Debate',connected:false}];
+const S={tab:'explore',sort:'date',filter:'All',cv:'harvard',editOpen:false,order:[6,5,7,8],
+ events:[
+ {id:1,title:'Pokhara Youth Hackathon',cat:'Hackathons',org:'Fewa Tech Club',sum:'36-hour build sprint on tourism tech with mentors from Kathmandu startups.',desc:'Teams of 3 to 4 design and prototype a tourism product over 36 hours. Finalists pitch to a panel of founders and investors, with prizes up to Rs 50,000.',pre:['Grades 9 to 12','Team of 3 to 4','Laptop and basic coding'],due:3,off:14,st:null},
+ {id:2,title:'Everest MUN 2026',cat:'MUNs',org:'Himalayan MUN Society',sum:'Three days of debate across 10 committees on climate, trade and water.',desc:'A full Model UN conference with position-paper feedback, crisis committees and a closing ceremony. Delegates receive country allocations a week before.',pre:['Grades 9 to 12','Position paper (2 pages)','Formal attire'],due:6,off:21,st:null},
+ {id:3,title:'Inter-School Futsal League',cat:'Sports',org:'Kathmandu Schools Sports Council',sum:'Knockout futsal for 24 school teams at the Satdobato arena.',desc:'Group stage followed by knockouts across two weekends. Referees and first aid are provided by the council.',pre:['Squad of 8','Principal’s signature','Own kit'],due:2,off:10,st:null},
+ {id:4,title:'Madhubani Art Fest',cat:'Arts',org:'Nepal Art Council',sum:'Live painting and gallery exhibition for artists under 19.',desc:'Artists paint live over two days, and selected works join a month-long exhibition. Canvas is provided.',pre:['Under 19','Portfolio of 3 works','Own paints and brushes'],due:9,off:30,st:null},
+ {id:5,title:'NASA Space Apps Kathmandu',cat:'Hackathons',org:'Kathmandu Living Labs',sum:'Local round of the global challenge using open satellite data.',desc:'Pick a challenge, build a solution with open data, and the best teams advance to the global judging round.',pre:['Team of up to 6','Free NASA account'],due:1,off:17,st:'paid'},
+ {id:6,title:'Nepal Robotics Challenge',cat:'Hackathons',org:'IOE Pulchowk Robotics Club',sum:'Line-follower and sumo-bot categories with prep workshops.',desc:'Two categories with a qualifying round. Workshops on motor control and sensors run the week before.',pre:['Grades 10 to 12','Bot built before contest day'],due:12,off:40,st:'saved'},
+ {id:7,title:'Nepal Code Sprint',cat:'Hackathons',org:'Code for Nepal',sum:'Runner-up. Built an offline quiz app for rural schools.',desc:'',pre:[],due:-70,off:-60,st:'done',role:'Runner-up, team of 3',learn:'Built an offline quiz app for rural schools and learned to design for low connectivity.'},
+ {id:8,title:'EduMUN',cat:'MUNs',org:'Edu Nepal',sum:'Outstanding Delegate. Represented Japan in the Security Council.',desc:'',pre:[],due:-130,off:-120,st:'done',role:'Delegate of Japan, Security Council',learn:'Learned to write position papers and negotiate resolutions under time pressure.'}]};
+const EV=id=>S.events.find(e=>e.id===id);
+
+/* pipeline */
+const STG=['saved','paid','done'],STN=['📥 Saved / Interested','💳 Paid / Registered','✅ Completed &amp; Reflected'];
+function setSt(id,s){const e=EV(id);e.st=s;S.order=S.order.filter(x=>x!==id);if(s)S.order.unshift(id);render();}
+function toggleSave(id){const e=EV(id);if(e.st&&e.st!=='saved')return;setSt(id,e.st?null:'saved');}
+function move(id,d){const e=EV(id);if(d===1&&e.st==='paid'){openRefl(id);return;}const i=STG.indexOf(e.st)+d;if(i>2)return;setSt(id,i<0?null:STG[i]);}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.add('hidden'),2200);}
+const openM=id=>{$(id).classList.remove('hidden');$(id).classList.add('flex');};
+const closeM=id=>{$(id).classList.add('hidden');$(id).classList.remove('flex');};
+
+/* live profile */
+function live(k,v,el){ME[k]=v;document.querySelectorAll(`[data-f="${k}"]`).forEach(i=>{if(i!==el)i.value=v;});
+ document.querySelectorAll('[data-bind]').forEach(n=>{const b=n.dataset.bind;n.textContent=b==='name'?dn():b==='first'?dn().split(' ')[0]:b==='ini'?ini(dn()):ME[b];});
+ if($('cvPrev'))$('cvPrev').innerHTML=cvHTML();}
+const fields=()=>`<div class="space-y-2"><input data-f="name" class="inp" value="${esc(ME.name)}" placeholder="Name" oninput="live('name',this.value,this)"><input data-f="grade" class="inp" value="${esc(ME.grade)}" placeholder="Grade" oninput="live('grade',this.value,this)"><textarea data-f="bio" rows="3" class="inp" placeholder="Bio" oninput="live('bio',this.value,this)">${esc(ME.bio)}</textarea></div>`;
+
+/* components */
+function dl(d){const hot=d<=3;return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${hot?'bg-rose-50 text-rose-700':'bg-slate-100 text-slate-600'}"><i data-lucide="timer" class="w-3.5 h-3.5"></i>${d===1?'Closes tomorrow':`Closes in ${d} days`}</span>`;}
+function card(e){const c=CAT[e.cat],lbl={saved:'Saved',paid:'Registered',done:'Completed'}[e.st];
+ return `<article class="bg-white rounded-xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 flex flex-col rise"><div class="h-1.5 rounded-t-xl ${c[1]}"></div><div class="p-4 flex-1 flex flex-col">
+ <div class="flex items-center justify-between gap-2"><span class="px-2 py-0.5 rounded-md text-xs font-bold ${c[0]}">${e.cat}</span>${dl(e.due)}</div>
+ <h3 class="font-bold text-base leading-snug tracking-tight mt-3">${esc(e.title)}</h3><p class="text-xs text-slate-500 mt-0.5">Organizer: ${esc(e.org)} · ${day(e.off)}</p><p class="text-sm text-slate-600 leading-relaxed mt-2 flex-1">${esc(e.sum)}</p>
+ <div class="flex gap-2 mt-4">${!e.st||e.st==='saved'?`<button onclick="toggleSave(${e.id})" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold ${btn} ${e.st?'bg-indigo-50 text-indigo-700 border border-indigo-300':'bg-indigo-600 text-white hover:bg-indigo-700'}"><i data-lucide="bookmark" class="w-4 h-4"${e.st?' fill="currentColor"':''}></i>${e.st?'Saved':'Save'}</button>`:`<div class="flex-1 text-center py-2 rounded-lg text-sm font-bold bg-emerald-50 text-emerald-700">✓ ${lbl}</div>`}
+ <button onclick="openMore(${e.id})" class="px-3 py-2 rounded-lg text-sm font-bold border border-slate-300 hover:bg-slate-50 ${btn}">Know More</button></div></div></article>`;}
+function mini(e,i){const c=STG[i],b=(t,d,cls)=>`<button onclick="move(${e.id},${d})" class="px-2.5 py-1 rounded-md text-xs font-bold ${cls} ${btn}">${t}</button>`,bk=b('← Back',-1,'bg-slate-100 text-slate-600');
+ const act=c==='saved'?b('Move to Paid →',1,'bg-indigo-600 text-white')+b('Remove',-1,'bg-slate-100 text-slate-600'):c==='paid'?b('Mark Completed →',1,'bg-emerald-600 text-white')+bk:`<span class="text-xs font-bold text-emerald-600 mr-auto self-center">✓ Reflected</span>`+bk;
+ return `<div class="bg-white rounded-lg border border-slate-200 p-3"><div class="font-bold text-sm leading-snug">${esc(e.title)}</div><div class="text-xs text-slate-500">${esc(e.org)} · ${day(e.off,e.off<0)}</div><div class="flex flex-wrap gap-1.5 mt-2">${act}</div></div>`;}
+function funnel(compact){return STG.map((s,i)=>{const l=S.order.map(EV).filter(e=>e.st===s);return `<div class="${compact?'':'bg-slate-100/70 rounded-xl p-3'}"><h4 class="font-bold text-sm mb-2 flex justify-between">${STN[i]}<span class="text-slate-400">${l.length}</span></h4><div class="space-y-2">${l.map(e=>mini(e,i)).join('')||'<p class="text-xs text-slate-400 py-2">Nothing here yet.</p>'}</div></div>`;}).join('');}
+function peerPanel(){return `<div><h3 class="font-bold text-sm mb-2">Peer Networks</h3><div class="space-y-2">${network.map(p=>`<div class="flex items-center gap-3 p-3 rounded-lg border border-slate-200"><div class="w-9 h-9 rounded-full bg-slate-800 text-white grid place-items-center text-xs font-bold">${ini(p.name)}</div><div class="flex-1 min-w-0"><div class="text-sm font-semibold truncate">${esc(p.name)}</div><div class="text-[11px] text-slate-500 truncate">${p.sub}</div></div>${p.connected?`<span class="text-xs font-bold text-emerald-600">✓ Connected</span>`:`<button onclick="conn('${p.id}')" class="px-2.5 py-1 rounded-md text-xs font-bold bg-slate-900 text-white hover:bg-indigo-600 ${btn}">+ Connect</button>`}</div>`).join('')}</div></div>`;}
+function conn(id){network.find(p=>p.id===id).connected=true;render();}
+
+const TPL=[['harvard','Harvard Standard','US style'],['europass','Europass','European format']];
+const bl=e=>esc((e.role?e.role+'. ':'')+(e.learn||e.sum));
+function cvHTML(){const d=S.order.map(EV).filter(e=>e.st==='done');
+ if(!d.length)return '<p class="text-sm text-slate-500 p-4">Finish an activity with a reflection to build your CV.</p>';
+ if(S.cv==='harvard')return `<div id="cvDoc" class="bg-white shadow border border-slate-200 mx-auto max-w-[720px] p-7" style="font-family:Georgia,serif;color:#111;min-width:460px"><div class="text-center border-b border-black pb-2"><div class="text-2xl font-bold">${esc(dn())}</div><div class="text-xs mt-1">${ME.loc} · ${ME.email}</div></div>
+ <h4 class="mt-4 text-sm font-bold border-b border-black">EDUCATION</h4><div class="flex justify-between text-sm mt-1"><b>${ME.school}</b><span>${esc(ME.grade)}</span></div><p class="text-[13px] mt-1">${esc(ME.bio)}</p>
+ <h4 class="mt-4 text-sm font-bold border-b border-black">EXTRACURRICULAR ACTIVITIES &amp; AWARDS</h4>${d.map(e=>`<div class="mt-2 text-sm"><div class="flex justify-between"><b>${esc(e.title)}</b><span>${day(e.off,1)}</span></div><div class="italic text-xs">${esc(e.org)}</div><div class="text-[13px] leading-snug">${bl(e)}</div></div>`).join('')}</div>`;
+ return `<div id="cvDoc" class="bg-white shadow border border-slate-200 mx-auto max-w-[720px] grid grid-cols-[190px_1fr] min-h-[400px]" style="min-width:460px"><div class="p-5 text-white" style="background:#003399"><div class="w-14 h-14 rounded-full bg-white/20 grid place-items-center font-bold text-lg">${ini(dn())}</div><div class="mt-3 font-bold">${esc(dn())}</div><div class="mt-4 text-xs font-bold text-blue-200">Contact</div><div class="text-xs mt-1 break-words">${ME.email}<br>${ME.loc}</div><div class="mt-4 text-xs font-bold text-blue-200">Education</div><div class="text-xs mt-1">${ME.school}<br>${esc(ME.grade)}</div></div>
+ <div class="p-6"><h4 class="font-bold pb-1 border-b-2" style="color:#003399;border-color:#003399">Achievements</h4>${d.map(e=>`<div class="mt-3 grid grid-cols-[72px_1fr] gap-3 text-sm"><div class="text-xs text-slate-500">${day(e.off,1)}</div><div><div class="font-bold">${esc(e.title)}</div><div class="text-xs" style="color:#003399">${esc(e.org)}</div><div class="text-[13px] leading-snug text-slate-700">${bl(e)}</div></div></div>`).join('')}</div></div>`;}
+
+function cvBanner(){const d=S.order.map(EV).filter(e=>e.st==='done');
+ return `<button onclick="go('career')" class="mt-4 w-full text-left rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-500 p-4 text-white hover:shadow-lg ${btn}"><div class="flex items-center justify-between gap-3"><div class="min-w-0"><div class="text-xs font-semibold opacity-90">Your CV</div><div class="font-extrabold text-lg tracking-tight">${d.length?`${d.length} completed ${d.length>1?'activities':'activity'} on your CV`:'Your CV starts here'}</div><div class="text-sm opacity-90 mt-0.5 line-clamp-2">${d.length?bl(d[0]):'Finish an activity with a short reflection and it becomes a CV line.'}</div></div><span class="shrink-0 px-3 py-1.5 rounded-lg bg-white/20 text-sm font-bold">Open CV →</span></div></button>`;}
+const V={
+explore(){const l=S.events.filter(e=>e.off>=0&&(S.filter==='All'||e.cat===S.filter)).sort((a,b)=>S.sort==='deadline'?a.due-b.due:a.off-b.off),soon=S.events.filter(e=>e.off>=0&&e.due<=3).length;
+ return `<h1 class="text-2xl lg:text-3xl font-extrabold tracking-tight">Welcome back, <span data-bind="first">${esc(dn().split(' ')[0])}</span></h1><p class="text-slate-500 mt-1">${soon} opportunities close within 3 days.</p>
+ ${cvBanner()}<section class="mt-5"><h2 class="text-sm font-bold mb-2">Peer Insights</h2><div class="flex gap-4 overflow-x-auto hsb pb-1">${peers.map(p=>`<button onclick="openIns('${p.id}')" class="shrink-0 w-16 text-center ${btn}"><div class="w-14 h-14 mx-auto rounded-full ring-2 ring-indigo-500 ring-offset-2 bg-slate-800 text-white grid place-items-center text-sm font-bold">${ini(p.name)}</div><div class="text-[11px] mt-1.5 truncate font-medium">${esc(p.name.split(' ')[0])}</div></button>`).join('')}</div></section>
+ <div class="flex items-center justify-between gap-3 mt-6"><h2 class="text-lg font-extrabold tracking-tight">Opportunity Explorer</h2><select aria-label="Sort" class="inp !w-auto" onchange="S.sort=this.value;render()"><option value="date"${S.sort==='date'?' selected':''}>Soonest event</option><option value="deadline"${S.sort==='deadline'?' selected':''}>Closing soonest</option></select></div>
+ <div class="flex gap-2 overflow-x-auto hsb py-3">${FILTERS.map(f=>`<button onclick="S.filter='${f}';render()" class="shrink-0 px-4 py-1.5 rounded-lg text-sm font-bold ${btn} ${S.filter===f?'bg-slate-900 text-white':'bg-white border border-slate-200 text-slate-600 hover:border-slate-400'}">${f}</button>`).join('')}</div>
+ <div class="grid md:grid-cols-2 min-[1500px]:grid-cols-3 gap-4">${l.map(card).join('')||'<p class="text-sm text-slate-500 p-6">No upcoming opportunities in this category.</p>'}</div>
+ <p class="text-center text-sm text-slate-400 mt-8">That’s every open opportunity for now.</p><div class="lg:hidden mt-6">${peerPanel()}</div>`;},
+pipeline(){return `<h1 class="text-2xl lg:text-3xl font-extrabold tracking-tight">Pipeline</h1><p class="text-slate-500 mt-1 mb-5">Move each opportunity forward as you progress.</p><div class="grid xl:grid-cols-3 gap-4">${funnel(false)}</div>`;},
+career(){return `<h1 class="text-2xl lg:text-3xl font-extrabold tracking-tight">My CV</h1><p class="text-slate-500 mt-1 mb-5">Your CV updates live from your profile and completed events.</p>
+ <div class="grid xl:grid-cols-[300px_minmax(0,1fr)] gap-5"><div class="bg-white rounded-xl border border-slate-200 p-4 self-start"><h3 class="font-bold text-sm mb-3">Profile details</h3>${fields()}</div>
+ <div class="bg-white rounded-xl border border-slate-200 p-4"><h3 class="font-bold text-sm mb-3">International CV Exporter</h3><div class="grid grid-cols-2 gap-2 mb-3">${TPL.map(([k,n,s])=>`<button onclick="S.cv='${k}';render()" class="text-left p-3 rounded-lg border-2 ${btn} ${S.cv===k?'border-indigo-600 bg-indigo-50':'border-slate-200'}"><div class="font-bold text-sm">${n}</div><div class="text-xs text-slate-500">${s}</div></button>`).join('')}</div>
+ <button onclick="exportCV()" class="mb-3 flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 ${btn}"><i data-lucide="printer" class="w-4 h-4"></i>Print / Export to PDF</button><div id="cvPrev" class="bg-slate-100 rounded-lg p-3 overflow-x-auto">${cvHTML()}</div></div></div>`;}
+};
+const TABS=[['explore','compass','Explore'],['pipeline','kanban','Pipeline'],['career','file-text','My CV']];
+const go=t=>{S.tab=t;render();scrollTo(0,0);};
+function render(){
+ $('view').innerHTML=V[S.tab]();
+ $('left').innerHTML=`<div class="sticky top-0 h-screen overflow-y-auto p-5 flex flex-col"><div class="flex items-center gap-2 font-extrabold tracking-tight text-lg mb-6"><span class="w-8 h-8 rounded-lg bg-indigo-600 grid place-items-center text-white"><i data-lucide="graduation-cap" class="w-4 h-4"></i></span>EcaScroll</div>
+ <div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full bg-indigo-600 text-white grid place-items-center font-bold" data-bind="ini">${ini(dn())}</div><div><div class="font-bold leading-tight" data-bind="name">${esc(dn())}</div><div class="text-xs text-slate-500" data-bind="grade">${esc(ME.grade)}</div><div class="text-xs text-slate-500">Kathmandu</div></div></div>
+ <p class="text-xs text-slate-600 leading-relaxed mt-3" data-bind="bio">${esc(ME.bio)}</p>
+ <button onclick="S.editOpen=!S.editOpen;render()" class="mt-3 flex items-center justify-between w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-semibold ${btn}">Edit Details<i data-lucide="${S.editOpen?'chevron-up':'chevron-down'}" class="w-4 h-4"></i></button>${S.editOpen?`<div class="mt-2">${fields()}</div>`:''}
+ <nav class="mt-6 space-y-1">${TABS.map(([k,i,l])=>`<button onclick="go('${k}')" class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold ${btn} ${S.tab===k?'bg-indigo-50 text-indigo-700':'text-slate-600 hover:bg-slate-50'}"><i data-lucide="${i}" class="w-4 h-4"></i>${l}</button>`).join('')}</nav></div>`;
+ $('right').innerHTML=`<div class="sticky top-0 h-screen overflow-y-auto p-5 space-y-6"><div><h3 class="font-bold mb-3">Your pipeline</h3><div class="space-y-4">${funnel(true)}</div></div>${peerPanel()}</div>`;
+ $('nav').innerHTML=TABS.map(([k,i,l])=>`<button onclick="go('${k}')" class="relative py-2.5 flex flex-col items-center gap-0.5 text-[11px] font-bold ${btn} ${S.tab===k?'text-indigo-600':'text-slate-400'}">${S.tab===k?'<span class="absolute top-0 w-8 h-0.5 rounded-b bg-indigo-600"></span>':''}<i data-lucide="${i}" class="w-5 h-5"></i>${l}</button>`).join('');
+ lucide.createIcons();}
+function exportCV(){$('print-root').innerHTML=cvHTML();setTimeout(()=>window.print(),50);}
+
+/* Reflection gate */
+let RF=null;
+function openRefl(id){RF=id;const e=EV(id);
+ $('refB').innerHTML=`<div class="flex justify-between items-start gap-3"><div><div class="text-xs font-bold text-emerald-600">Finish activity</div><h3 class="font-extrabold text-xl tracking-tight leading-snug">${esc(e.title)}</h3></div><button onclick="closeM('refM')" aria-label="Close" class="p-1.5 rounded-lg hover:bg-slate-100 ${btn}"><i data-lucide="x" class="w-5 h-5"></i></button></div><p class="text-sm text-slate-500 mt-2">Add a short reflection to finish this activity. It becomes a line on your CV.</p>
+ <label class="block text-sm font-bold mt-4">Your role or result</label><input id="rRole" class="inp mt-1" placeholder="e.g. Team lead, Runner-up" value="${esc(e.role||'')}">
+ <label class="block text-sm font-bold mt-3">What did you learn?</label><textarea id="rLearn" rows="3" class="inp mt-1" placeholder="A sentence or two on what you did and learned">${esc(e.learn||'')}</textarea>
+ <p id="rErr" class="text-sm text-rose-600 mt-2 hidden">Add your role and at least 20 characters about what you learned.</p><button onclick="saveRefl()" class="mt-4 w-full py-2.5 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 ${btn}">Finish &amp; add to CV</button>`;
+ openM('refM');lucide.createIcons();}
+function saveRefl(){const r=$('rRole').value.trim(),l=$('rLearn').value.trim();if(!r||l.length<20){$('rErr').classList.remove('hidden');return;}
+ const e=EV(RF);e.role=r;e.learn=l;closeM('refM');setSt(RF,'done');toast('Added to your CV');}
+/* Peer Insight modal */
+function openIns(id){const p=peers.find(x=>x.id===id),i=p.ins;
+ $('insB').innerHTML=`<div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 rounded-full bg-slate-800 text-white grid place-items-center text-sm font-bold">${ini(p.name)}</div><div class="flex-1"><div class="font-bold leading-tight">${esc(p.name)}</div><div class="text-xs text-slate-500">Peer Insight · ${i.when}</div></div><button onclick="closeM('insM')" aria-label="Close" class="p-1.5 rounded-lg hover:bg-slate-100 ${btn}"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+ ${i.kind==='text'?`<p class="text-lg leading-relaxed font-medium border-l-4 border-indigo-500 pl-4">${esc(i.text)}</p>`:`<div class="rounded-xl border-2 border-slate-200 p-5 text-center bg-slate-50"><div class="text-xs font-bold text-slate-500">Certificate of achievement</div><div class="font-extrabold text-xl tracking-tight mt-2 leading-snug">${esc(i.title)}</div><div class="text-sm text-slate-600 mt-1">Issued by ${esc(i.by)}</div><div class="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold"><i data-lucide="badge-check" class="w-4 h-4"></i>Verified credential</div></div>`}`;
+ openM('insM');lucide.createIcons();}
+
+/* Know More drawer */
+function openMore(id){const e=EV(id),c=CAT[e.cat],soc=[['Instagram','instagram','hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300'],['WhatsApp','message-circle','hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-300'],['Facebook','facebook','hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300']];
+ $('drawB').innerHTML=`<div class="h-1.5 ${c[1]}"></div><div class="p-6"><div class="flex justify-between items-start gap-3"><span class="px-2 py-0.5 rounded-md text-xs font-bold ${c[0]}">${e.cat}</span><button onclick="closeM('drawer')" aria-label="Close" class="p-1.5 rounded-lg hover:bg-slate-100 ${btn}"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+ <h2 class="text-2xl font-extrabold tracking-tight leading-tight mt-3">${esc(e.title)}</h2><p class="text-sm text-slate-500 mt-1">Organizer: ${esc(e.org)} · ${day(e.off)}</p><div class="mt-3">${dl(e.due)}</div>
+ <h3 class="font-bold text-sm mt-6 mb-1">About this opportunity</h3><p class="text-sm text-slate-700 leading-relaxed">${esc(e.desc)}</p>
+ <h3 class="font-bold text-sm mt-5 mb-2">Prerequisites</h3><ul class="space-y-1.5">${e.pre.map(p=>`<li class="flex gap-2 text-sm text-slate-700"><i data-lucide="check-circle-2" class="w-4 h-4 mt-0.5 text-emerald-500 shrink-0"></i>${esc(p)}</li>`).join('')}</ul>
+ <h3 class="font-bold text-sm mt-5 mb-2">Join the community</h3><div class="flex gap-2">${soc.map(([n,i,h])=>`<button onclick="toast('Opening ${n} group for ${esc(e.title).replace(/'/g,'')} (demo link)')" title="${n}" aria-label="${n}" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-slate-200 text-slate-500 text-sm font-semibold ${h} ${btn}"><i data-lucide="${i}" class="w-4 h-4"></i>${n}</button>`).join('')}</div>
+ ${!e.st||e.st==='saved'?`<button onclick="toggleSave(${e.id});openMore(${e.id})" class="mt-6 w-full py-2.5 rounded-lg text-sm font-bold ${btn} ${e.st?'bg-indigo-50 text-indigo-700 border border-indigo-300':'bg-indigo-600 text-white hover:bg-indigo-700'}">${e.st?'✓ Saved to pipeline':'Save to pipeline'}</button>`:''}</div>`;
+ openM('drawer');lucide.createIcons();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeM('insM');closeM('drawer');closeM('refM');}});
+render();
+</script>
+</body>
+</html>
