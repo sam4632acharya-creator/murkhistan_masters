@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcaScroll</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.383.0/dist/umd/lucide.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Bricolage Grotesque',system-ui,sans-serif;color:#0f172a;background:radial-gradient(900px 500px at 90% -10%,#c7d2fe66,transparent),radial-gradient(700px 500px at -10% 90%,#a7f3d066,transparent),#f8fafc;background-attachment:fixed}
+.hsb::-webkit-scrollbar{display:none}.hsb{scrollbar-width:none}
+.ring-g{background:conic-gradient(from 200deg,#6366f1,#10b981,#f59e0b,#6366f1);padding:3px}
+.inp{width:100%;border:1px solid #cbd5e1;border-radius:.75rem;padding:.55rem .8rem;font-size:.875rem;outline:none;background:#fff}.inp:focus{box-shadow:0 0 0 2px #6366f1}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}.rise{animation:rise .3s ease both}
+#print-root{display:none}
+@media print{body>*:not(#print-root){display:none!important}#print-root{display:block!important}#cvDoc{box-shadow:none!important;border:0!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<header class="md:hidden sticky top-0 z-20 bg-white/70 backdrop-blur-md h-14 px-4 flex items-center justify-between">
+  <div class="flex items-center gap-2 font-extrabold tracking-tight text-lg"><span class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-emerald-500 grid place-items-center text-white"><i data-lucide="scroll-text" class="w-4 h-4"></i></span>EcaScroll</div>
+  <div id="hdr"></div>
+</header>
+<aside id="dock" class="hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-1.5 p-2 rounded-3xl bg-white/60 backdrop-blur-md ring-1 ring-white shadow-xl"></aside>
+<div class="md:pl-28 md:pr-6 md:py-6 pb-24 md:pb-6"><div class="max-w-6xl mx-auto lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-6">
+  <main id="view" class="min-w-0"></main>
+  <aside id="hub" class="hidden lg:block"></aside>
+</div></div>
+<nav id="nav" class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/80 backdrop-blur-md border-t border-slate-200 grid grid-cols-4"></nav>
+
+<div id="story" class="fixed inset-0 z-50 hidden bg-slate-900/80 backdrop-blur-md items-center justify-center p-4"></div>
+<div id="addM" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md" onclick="if(event.target===this)closeAdd()">
+  <div class="bg-white w-full max-w-md rounded-3xl p-5 rise">
+    <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg tracking-tight">Add story</h3><button onclick="closeAdd()" aria-label="Close" class="p-1.5 rounded-lg hover:bg-slate-100 active:scale-95 transition-all"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+    <div id="asBody"></div>
+  </div>
+</div>
+<div id="print-root"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ini=n=>(n.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2)||'?').toUpperCase();
+const T0=Date.now(),btn='active:scale-95 transition-all duration-200';
+const G={Hackathons:'from-indigo-600 to-violet-500',MUNs:'from-amber-500 to-orange-500',Sports:'from-emerald-500 to-teal-500',Arts:'from-rose-500 to-fuchsia-500'};
+const EM={Hackathons:'💻',MUNs:'🌐',Sports:'⚽',Arts:'🎨'};
+const FILTERS=['All','Hackathons','MUNs','Sports','Arts'];
+const SG=['from-indigo-600 to-emerald-500','from-rose-500 to-amber-400','from-slate-900 to-indigo-600'];
+const day=(o,y)=>new Date(Date.now()+o*864e5).toLocaleDateString('en',y?{month:'short',year:'numeric'}:{month:'short',day:'numeric'});
+const ME={name:'Ram Bahadur',grade:'Grade 12, Science',loc:'Kathmandu, Nepal',school:'Budhanilkantha School',email:'ram.bahadur@example.com',bio:'Physics enthusiast and weekend coder, building tools that help Nepali students learn offline.'};
+const people=[
+ {id:'sita',name:'Sita Rai',connected:true},{id:'nabin',name:'Nabin Shrestha',connected:true},{id:'priya',name:'Priya Thapa',connected:true},{id:'bikash',name:'Bikash Gurung',connected:true},
+ {id:'anisha',name:'Anisha Lama',connected:false,sub:'Grade 11 · Pokhara'},{id:'rohan',name:'Rohan Tamang',connected:false,sub:'Grade 12 · Lalitpur'},{id:'sujata',name:'Sujata Adhikari',connected:false,sub:'Grade 11 · Bhaktapur'}];
+const stories={me:[],
+ sita:[{type:'visual',title:'1st Place, Himalayan Hack',sub:'Certified by KU CS Club'},{type:'text',text:'48 hours, 62 teams, 1 trophy. Thank you, team!',g:SG[0]}],
+ nabin:[{type:'text',text:'Registering for Everest MUN. Who is in?',g:SG[1]}],
+ priya:[{type:'visual',title:'Captain, Schools Cup',sub:'Certified by NSSC'}],
+ bikash:[{type:'visual',title:'Winner, Youth Art Biennale',sub:'Certified by Nepal Art Council'},{type:'text',text:'Murals on the climate crisis next.',g:SG[2]}]};
+const S={tab:'home',filter:'All',chat:'sita',edit:false,cv:'harvard',order:[6,5,7,8],
+ events:[
+ {id:1,title:'Pokhara Youth Hackathon',cat:'Hackathons',org:'Fewa Tech Club',desc:'A 36-hour build sprint on tourism tech. Teams of 3 to 4, mentors from Kathmandu startups, and prizes up to Rs 50,000.',due:3,off:14,st:null},
+ {id:2,title:'Everest MUN 2026',cat:'MUNs',org:'Himalayan MUN Society',desc:'Three days of debate across 10 committees on climate, trade and water diplomacy. Open to Grades 9 to 12.',due:6,off:21,st:null},
+ {id:3,title:'Inter-School Futsal League',cat:'Sports',org:'Kathmandu Schools Sports Council',desc:'Knockout futsal with 24 school teams at the Satdobato arena. Squads of 8, referees provided.',due:2,off:10,st:null},
+ {id:4,title:'Madhubani Art Fest',cat:'Arts',org:'Nepal Art Council',desc:'Live painting and an exhibition for under-19 artists. Canvas provided; bring your own materials.',due:9,off:30,st:null},
+ {id:5,title:'NASA Space Apps Kathmandu',cat:'Hackathons',org:'Kathmandu Living Labs',desc:'Local round of the global challenge. Use open satellite data to solve problems on Earth.',due:1,off:17,st:'paid'},
+ {id:6,title:'Nepal Robotics Challenge',cat:'Hackathons',org:'IOE Pulchowk Robotics Club',desc:'Line-follower and sumo-bot categories, with workshops the week before the contest.',due:12,off:40,st:'saved'},
+ {id:7,title:'Nepal Code Sprint',cat:'Hackathons',org:'Code for Nepal',desc:'Runner-up. Built an offline quiz app for rural schools.',due:-70,off:-60,st:'done'},
+ {id:8,title:'EduMUN',cat:'MUNs',org:'Edu Nepal',desc:'Outstanding Delegate. Represented Japan in the Security Council.',due:-130,off:-120,st:'done'}],
+ msgs:{sita:[{m:0,t:'Are you applying to Pokhara Hack?'}],nabin:[{m:0,t:'Everest MUN is on. Join?'}],priya:[{m:0,t:'Futsal trials at 6 tomorrow.'}],bikash:[{m:0,t:'Sent you the mural photos.'}]}};
+const P=id=>people.find(p=>p.id===id),EV=id=>S.events.find(e=>e.id===id);
+const av=(n,c='w-10 h-10 text-sm')=>`<div class="${c} rounded-full bg-gradient-to-br from-slate-700 to-indigo-500 grid place-items-center text-white font-bold shrink-0">${ini(n)}</div>`;
+
+/* pipeline */
+const STG=['saved','paid','done'];
+function setSt(id,s){const e=EV(id);e.st=s;S.order=S.order.filter(x=>x!==id);if(s)S.order.unshift(id);render();}
+function toggleSave(id){const e=EV(id);if(e.st&&e.st!=='saved')return;setSt(id,e.st?null:'saved');}
+function move(id,d){const i=STG.indexOf(EV(id).st)+d;if(i>2)return;setSt(id,i<0?null:STG[i]);}
+
+/* connections */
+function connBtn(p){return p.connected?`<button data-c="${p.id}" disabled class="px-3 py-1.5 rounded-full text-xs font-bold border border-emerald-500 text-emerald-600 bg-emerald-50 cursor-default">✓ Connected</button>`:`<button data-c="${p.id}" onclick="connect('${p.id}')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-slate-900 text-white hover:bg-indigo-600 ${btn}">+ Connect</button>`;}
+function connect(id){const p=P(id);p.connected=true;if(!S.msgs[id])S.msgs[id]=[{m:0,t:'Hi Ram, thanks for connecting!'}];
+ document.querySelectorAll(`[data-c="${id}"]`).forEach(b=>b.outerHTML=connBtn(p));renderHub();lucide.createIcons();tick();}
+
+/* countdown */
+function nextEv(){return S.events.filter(e=>(e.st==='saved'||e.st==='paid')&&e.off>=0).sort((a,b)=>a.off-b.off)[0];}
+function boxes(ms){ms=Math.max(0,ms);const v=[['d',864e5],['h',36e5],['m',6e4],['s',1e3]];let r=ms;return v.map(([l,u])=>{const n=Math.floor(r/u);r-=n*u;return `<div class="flex-1 rounded-xl bg-white/15 py-2 text-center"><div class="text-xl font-extrabold tabular-nums">${String(n).padStart(2,'0')}</div><div class="text-[10px] opacity-80">${l}</div></div>`}).join('');}
+function tick(){document.querySelectorAll('.cd').forEach(el=>el.innerHTML=boxes(+el.dataset.t-Date.now()));}
+setInterval(tick,1000);
+function nextCard(){const e=nextEv();return e?`<div class="rounded-3xl bg-gradient-to-br ${G[e.cat]} p-5 text-white shadow-lg"><div class="text-xs font-semibold opacity-90">Up next</div><div class="font-extrabold text-lg tracking-tight leading-snug mt-0.5">${esc(e.title)}</div><div class="text-xs opacity-90 mb-3">${esc(e.org)} · ${day(e.off)}</div><div class="cd flex gap-2" data-t="${T0+e.off*864e5}"></div></div>`
+ :`<div class="rounded-3xl bg-white p-5 ring-1 ring-slate-200 text-sm text-slate-500">Nothing on your planner yet. Save an event to start a countdown.</div>`;}
+
+/* components */
+function storiesHTML(){const ids=['me',...people.filter(p=>p.connected).map(p=>p.id)].filter(id=>id!=='me'||stories.me.length);
+ return `<button onclick="openAdd()" class="shrink-0 w-[68px] text-center ${btn}"><div class="w-[68px] h-[68px] rounded-full border-2 border-dashed border-indigo-400 grid place-items-center text-indigo-600 bg-white"><i data-lucide="plus" class="w-6 h-6"></i></div><div class="text-[11px] mt-1 font-bold text-indigo-600">+ Add Story</div></button>`+
+ ids.map(id=>{const n=id==='me'?ME.name:P(id).name;return `<button onclick="openStory('${id}')" class="shrink-0 w-[68px] text-center ${btn}"><div class="ring-g rounded-full"><div class="bg-white rounded-full p-0.5">${av(n,'w-[3.6rem] h-[3.6rem]')}</div></div><div class="text-[11px] mt-1 truncate font-semibold">${id==='me'?'Your story':esc(n.split(' ')[0])}</div></button>`}).join('');}
+function dl(d){const hot=d<=3;return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${hot?'bg-rose-50 text-rose-700':'bg-emerald-50 text-emerald-700'}"><i data-lucide="clock" class="w-3.5 h-3.5"></i>${d===1?'Registration closes tomorrow':`Registration closes in ${d} days`}</span>`;}
+function evCard(e){const lbl={saved:'Saved',paid:'Registered',done:'Completed'}[e.st],h=['h-32','h-44','h-36','h-48'][e.id%4];
+ return `<article class="mb-4 break-inside-avoid rounded-3xl overflow-hidden bg-white ring-1 ring-slate-200/70 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 rise">
+ <div class="bg-gradient-to-br ${G[e.cat]} ${h} p-4 flex flex-col justify-between text-white"><span class="self-start text-xs font-bold bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full">${EM[e.cat]} ${e.cat}</span><h3 class="text-2xl font-extrabold tracking-tight leading-[1.1]">${esc(e.title)}</h3></div>
+ <div class="p-4"><div class="text-xs text-slate-500">Organised by <b class="text-slate-700">${esc(e.org)}</b> · ${day(e.off)}</div><p class="text-sm leading-relaxed text-slate-700 mt-2">${esc(e.desc)}</p><div class="mt-3">${dl(e.due)}</div>
+ ${!e.st||e.st==='saved'?`<button onclick="toggleSave(${e.id})" class="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-sm font-bold ${btn} ${e.st?'bg-indigo-50 text-indigo-700 border border-indigo-300':'bg-slate-900 text-white hover:bg-indigo-600'}"><i data-lucide="bookmark" class="w-4 h-4"${e.st?' fill="currentColor"':''}></i>${e.st?'Saved':'Save Event'}</button>`:`<div class="mt-3 w-full text-center py-2.5 rounded-2xl text-sm font-bold bg-emerald-50 text-emerald-700">✓ ${lbl}</div>`}</div></article>`;}
+function peerNode(){const l=people.filter(p=>!p.connected).slice(0,3);if(!l.length)return '';
+ return `<section class="mb-4 break-inside-avoid rounded-3xl bg-gradient-to-br from-slate-900 to-indigo-900 p-4 text-white"><div class="font-bold mb-3">Students like you</div><div class="space-y-3">${l.map(p=>`<div class="flex items-center gap-3">${av(p.name)}<div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${esc(p.name)}</div><div class="text-[11px] text-slate-300">${p.sub}</div></div>${connBtn(p)}</div>`).join('')}</div></section>`;}
+function mini(e,i){const c=STG[i],b=(t,d,cls)=>`<button onclick="move(${e.id},${d})" class="px-3 py-1.5 rounded-full text-xs font-bold ${cls} ${btn}">${t}</button>`,bk=b('← Back',-1,'bg-slate-100 text-slate-600');
+ const act=c==='saved'?b('Move to Paid',1,'bg-indigo-600 text-white')+b('Remove',-1,'bg-slate-100 text-slate-600'):c==='paid'?b('Move to Completed',1,'bg-emerald-600 text-white')+bk:`<span class="text-xs font-bold text-emerald-600 mr-auto self-center">✓ Verified</span>`+bk;
+ return `<div class="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden"><div class="h-1.5 bg-gradient-to-r ${G[e.cat]}"></div><div class="p-3"><div class="font-bold text-sm leading-snug">${esc(e.title)}</div><div class="text-xs text-slate-500">${esc(e.org)} · ${day(e.off,e.off<0)}</div><div class="flex flex-wrap gap-1.5 mt-2">${act}</div></div></div>`;}
+
+const bubble=m=>`<div class="flex ${m.m?'justify-end':''}"><div class="max-w-[78%] px-3.5 py-2 rounded-2xl text-sm ${m.m?'bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-br-sm':'bg-white ring-1 ring-slate-200 rounded-bl-sm'}">${esc(m.t)}</div></div>`;
+const TPL=[['harvard','Harvard Standard','US style'],['europass','Europass','European format']];
+function cvHTML(){const d=S.order.map(EV).filter(e=>e.st==='done');
+ if(!d.length)return '<p class="text-sm text-slate-500 p-4">Mark an event as Completed in Saved to build your CV.</p>';
+ if(S.cv==='harvard')return `<div id="cvDoc" class="bg-white shadow border border-slate-200 mx-auto max-w-[720px] p-7" style="font-family:Georgia,serif;color:#111;min-width:460px"><div class="text-center border-b border-black pb-2"><div class="text-2xl font-bold">${esc(ME.name)}</div><div class="text-xs mt-1">${ME.loc} · ${ME.email}</div></div>
+ <h4 class="mt-4 text-sm font-bold border-b border-black">EDUCATION</h4><div class="flex justify-between text-sm mt-1"><b>${ME.school}</b><span>${esc(ME.grade)}</span></div><p class="text-[13px] mt-1">${esc(ME.bio)}</p>
+ <h4 class="mt-4 text-sm font-bold border-b border-black">EXTRACURRICULAR ACTIVITIES &amp; AWARDS</h4>${d.map(e=>`<div class="mt-2 text-sm"><div class="flex justify-between"><b>${esc(e.title)}</b><span>${day(e.off,1)}</span></div><div class="italic text-xs">${esc(e.org)} · Verified</div><div class="text-[13px] leading-snug">${esc(e.desc)}</div></div>`).join('')}</div>`;
+ return `<div id="cvDoc" class="bg-white shadow border border-slate-200 mx-auto max-w-[720px] grid grid-cols-[190px_1fr] min-h-[400px]" style="min-width:460px"><div class="p-5 text-white" style="background:#003399"><div class="w-14 h-14 rounded-full bg-white/20 grid place-items-center font-bold text-lg">${ini(ME.name)}</div><div class="mt-3 font-bold">${esc(ME.name)}</div><div class="mt-4 text-xs font-bold text-blue-200">Contact</div><div class="text-xs mt-1 break-words">${ME.email}<br>${ME.loc}</div><div class="mt-4 text-xs font-bold text-blue-200">Education</div><div class="text-xs mt-1">${ME.school}<br>${esc(ME.grade)}</div></div>
+ <div class="p-6"><h4 class="font-bold pb-1 border-b-2" style="color:#003399;border-color:#003399">Achievements</h4>${d.map(e=>`<div class="mt-3 grid grid-cols-[72px_1fr] gap-3 text-sm"><div class="text-xs text-slate-500">${day(e.off,1)}</div><div><div class="font-bold">${esc(e.title)}</div><div class="text-xs" style="color:#003399">${esc(e.org)}</div><div class="text-[13px] leading-snug text-slate-700">${esc(e.desc)}</div></div></div>`).join('')}</div></div>`;}
+
+const V={
+home(){const l=S.events.filter(e=>e.off>=0&&(S.filter==='All'||e.cat===S.filter));let o='';
+ l.forEach((e,i)=>{o+=evCard(e);if((i+1)%2===0)o+=peerNode();});if(!l.length)o='<p class="text-center text-sm text-slate-500 p-8">No upcoming events in this category.</p>';
+ return `<div class="px-4 md:px-0"><h1 class="hidden md:block text-3xl font-extrabold tracking-tight mb-1">Namaste, ${esc(ME.name.split(' ')[0])} 👋</h1><p class="hidden md:block text-slate-500 mb-4">Find your next big thing.</p>
+ <div class="py-3 md:py-0"><div id="stories" class="flex gap-4 overflow-x-auto hsb pb-2">${storiesHTML()}</div></div>
+ <div class="lg:hidden my-3">${nextCard()}</div>
+ <div class="flex gap-2 overflow-x-auto hsb py-3">${FILTERS.map(f=>`<button onclick="S.filter='${f}';render()" class="shrink-0 px-5 py-2 rounded-full text-sm font-bold ${btn} ${S.filter===f?'bg-slate-900 text-white shadow-lg':'bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-slate-400'}">${f}</button>`).join('')}</div>
+ <div class="columns-1 sm:columns-2 gap-4">${o}</div><div class="text-center py-10"><div class="font-extrabold text-xl tracking-tight">✨ You're all caught up for today! 🇳🇵</div><div class="text-sm text-slate-500 mt-1">New events land here every morning.</div></div></div>`;},
+saved(){const col=(t,i)=>{const l=S.order.map(EV).filter(e=>e.st===STG[i]);return `<div class="bg-white/60 backdrop-blur-md ring-1 ring-white rounded-3xl p-3"><h4 class="font-bold text-sm mb-2 px-1">${t} <span class="text-slate-400">${l.length}</span></h4><div class="space-y-2">${l.map(e=>mini(e,i)).join('')||'<p class="text-xs text-slate-400 p-2">Empty. Save an event from Home.</p>'}</div></div>`;};
+ return `<div class="p-4 md:p-0"><h1 class="text-3xl font-extrabold tracking-tight mb-4">Saved events</h1><div class="grid xl:grid-cols-3 md:grid-cols-1 gap-3">${col('📥 Interested / Saved',0)}${col('💳 Paid / Registered',1)}${col('✅ Completed / Verified',2)}</div></div>`;},
+messages(){const l=people.filter(p=>p.connected),p=P(S.chat)||l[0];S.chat=p.id;
+ return `<div class="p-4 md:p-0"><h1 class="text-3xl font-extrabold tracking-tight mb-4">Messages</h1><div class="flex gap-3 overflow-x-auto hsb mb-3">${l.map(x=>`<button onclick="S.chat='${x.id}';render()" class="shrink-0 w-16 text-center ${btn} ${x.id===p.id?'':'opacity-60'}"><div class="${x.id===p.id?'ring-g':'p-[3px]'} rounded-full"><div class="bg-white rounded-full p-0.5">${av(x.name,'w-[3.25rem] h-[3.25rem]')}</div></div><div class="text-[11px] mt-1 truncate">${esc(x.name.split(' ')[0])}</div></button>`).join('')}</div>
+ <div class="bg-slate-100/80 rounded-3xl flex flex-col h-[60vh]"><div class="p-3 bg-white rounded-t-3xl font-bold text-sm">${esc(p.name)}</div><div id="msgs" class="flex-1 overflow-y-auto p-3 space-y-2">${S.msgs[p.id].map(bubble).join('')}</div>
+ <div class="p-3 bg-white rounded-b-3xl flex gap-2"><input id="mIn" class="inp" placeholder="Message ${esc(p.name.split(' ')[0])}…" onkeydown="if(event.key==='Enter')send()"><button onclick="send()" aria-label="Send" class="px-4 rounded-xl bg-indigo-600 text-white ${btn}"><i data-lucide="send" class="w-4 h-4"></i></button></div></div></div>`;},
+profile(){const head=S.edit?`<div class="mt-3 space-y-2"><input id="eName" class="inp" value="${esc(ME.name)}" placeholder="Name"><input id="eGrade" class="inp" value="${esc(ME.grade)}" placeholder="Grade"><textarea id="eBio" rows="3" class="inp" placeholder="Bio">${esc(ME.bio)}</textarea><p id="pErr" class="text-sm text-rose-600 hidden">Name and grade can’t be empty.</p><div class="flex gap-2"><button onclick="saveProfile()" class="px-4 py-2 rounded-full text-sm font-bold text-white bg-emerald-600 ${btn}">Save changes</button><button onclick="S.edit=false;render()" class="px-4 py-2 rounded-full text-sm font-bold hover:bg-slate-100 ${btn}">Cancel</button></div></div>`
+ :`<p class="text-sm text-slate-500 mt-2">${esc(ME.grade)} · ${ME.loc}</p><p class="text-sm mt-2 leading-relaxed">${esc(ME.bio)}</p><button onclick="S.edit=true;render()" class="mt-3 px-4 py-2 rounded-full text-sm font-bold border border-slate-300 ${btn}">Edit Details</button>`;
+ return `<div class="p-4 md:p-0 space-y-4"><div class="bg-white rounded-3xl ring-1 ring-slate-200 overflow-hidden"><div class="h-24 bg-gradient-to-r from-indigo-600 via-violet-500 to-emerald-400"></div><div class="px-5 pb-5 -mt-8">${av(ME.name,'w-16 h-16 text-xl ring-4 ring-white')}<h2 class="font-extrabold text-2xl tracking-tight mt-2">${esc(ME.name)}</h2>${head}</div></div>
+ <div class="bg-white rounded-3xl ring-1 ring-slate-200 p-5"><h3 class="font-bold text-lg">International CV Exporter</h3><p class="text-xs text-slate-500 mb-3">Built from events you marked Completed.</p><div class="grid grid-cols-2 gap-2 mb-3">${TPL.map(([k,n,s])=>`<button onclick="S.cv='${k}';render()" class="text-left p-3 rounded-2xl border-2 ${btn} ${S.cv===k?'border-indigo-600 bg-indigo-50':'border-slate-200'}"><div class="font-bold text-sm">${n}</div><div class="text-xs text-slate-500">${s}</div></button>`).join('')}</div>
+ <button onclick="exportCV()" class="mb-3 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 ${btn}"><i data-lucide="printer" class="w-4 h-4"></i>Print / Export to PDF</button><div class="bg-slate-100 rounded-2xl p-3 overflow-x-auto">${cvHTML()}</div></div></div>`;}
+};
+const TABS=[['home','house','Home'],['saved','bookmark','Saved'],['messages','message-circle','Messages'],['profile','user','Profile']];
+const go=t=>{S.tab=t;S.edit=false;render();scrollTo(0,0);};
+function renderHub(){const c=s=>S.events.filter(e=>e.st===s).length;
+ $('hub').innerHTML=`<div class="sticky top-6 space-y-4"><div class="text-sm font-bold text-slate-500 px-1">Urgent planner</div>${nextCard()}
+ <div class="grid grid-cols-3 gap-2 text-center">${[['Saved',c('saved'),'text-indigo-600'],['Paid',c('paid'),'text-amber-600'],['Done',c('done'),'text-emerald-600']].map(([l,n,k])=>`<div class="bg-white rounded-2xl ring-1 ring-slate-200 py-3"><div class="text-xl font-extrabold ${k}">${n}</div><div class="text-[11px] text-slate-500">${l}</div></div>`).join('')}</div>
+ <div class="bg-white rounded-3xl ring-1 ring-slate-200 p-2"><div class="font-bold text-sm p-2">Active contacts</div>${people.filter(p=>p.connected).map(p=>`<button onclick="S.chat='${p.id}';go('messages')" class="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-slate-50 ${btn}"><div class="relative">${av(p.name,'w-9 h-9 text-xs')}<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white"></span></div><div class="text-sm font-semibold">${esc(p.name)}</div></button>`).join('')}</div></div>`;}
+function render(){
+ $('view').innerHTML=V[S.tab]();renderHub();
+ $('dock').innerHTML=`<div class="w-11 h-11 rounded-2xl bg-slate-900 grid place-items-center text-white mb-1"><i data-lucide="scroll-text" class="w-5 h-5"></i></div>`+TABS.map(([k,i,l])=>`<button onclick="go('${k}')" title="${l}" class="relative w-14 py-2 rounded-2xl flex flex-col items-center gap-0.5 text-[10px] font-bold ${btn} ${S.tab===k?'bg-gradient-to-br from-indigo-600 to-emerald-500 text-white shadow-lg scale-105':'text-slate-500 hover:bg-white'}"><i data-lucide="${i}" class="w-5 h-5"></i>${l}</button>`).join('');
+ $('nav').innerHTML=TABS.map(([k,i,l])=>`<button onclick="go('${k}')" class="relative py-2.5 flex flex-col items-center gap-0.5 text-[11px] font-bold ${btn} ${S.tab===k?'text-indigo-600':'text-slate-400'}">${S.tab===k?'<span class="absolute top-0 w-8 h-1 rounded-b-full bg-gradient-to-r from-indigo-600 to-emerald-500"></span>':''}<i data-lucide="${i}" class="w-5 h-5"></i>${l}</button>`).join('');
+ $('hdr').innerHTML=av(ME.name,'w-8 h-8 text-xs');lucide.createIcons();tick();}
+function send(){const i=$('mIn'),t=i.value.trim(),id=S.chat;if(!t)return;S.msgs[id].push({m:1,t});$('msgs').insertAdjacentHTML('beforeend',bubble({m:1,t}));i.value='';$('msgs').scrollTop=1e9;
+ setTimeout(()=>{const r={m:0,t:'Sounds good, see you there!'};S.msgs[id].push(r);if(S.tab==='messages'&&S.chat===id&&$('msgs')){$('msgs').insertAdjacentHTML('beforeend',bubble(r));$('msgs').scrollTop=1e9;}},1000);}
+function saveProfile(){const n=$('eName').value.trim(),g=$('eGrade').value.trim();if(!n||!g){$('pErr').classList.remove('hidden');return;}ME.name=n;ME.grade=g;ME.bio=$('eBio').value.trim();S.edit=false;render();}
+function exportCV(){$('print-root').innerHTML=cvHTML();setTimeout(()=>window.print(),50);}
+
+/* Story viewer */
+let SV={id:null,i:0,t:null};
+function openStory(id){SV={id,i:0,t:null};showStory();}
+function showStory(){const l=stories[SV.id],s=l[SV.i],n=SV.id==='me'?ME.name:P(SV.id).name,el=$('story');
+ const body=s.type==='text'?`<div class="rounded-3xl bg-gradient-to-br ${s.g} p-8 min-h-[360px] flex items-center"><p class="text-white font-extrabold text-3xl tracking-tight leading-tight">${esc(s.text)}</p></div>`
+ :`<div class="rounded-3xl p-6 min-h-[360px] flex flex-col justify-between text-white ring-1 ring-white/20 shadow-[0_0_50px_-8px_#6366f1]" style="background:radial-gradient(circle at 15% 15%,#6366f166,transparent 55%),radial-gradient(circle at 90% 95%,#10b98155,transparent 50%),#0f172a"><div class="text-xs text-indigo-200">Certified achievement snapshot</div><div><div class="font-extrabold text-2xl tracking-tight leading-tight">${esc(s.title)}</div><div class="text-sm text-slate-300 mt-2">${esc(s.sub)}</div></div><div class="flex items-center gap-1 text-xs text-emerald-300"><i data-lucide="shield-check" class="w-4 h-4"></i>Verified</div></div>`;
+ el.innerHTML=`<div class="w-full max-w-sm relative"><div class="flex gap-1 mb-3">${l.map((_,k)=>`<div class="h-1 flex-1 bg-white/30 rounded-full overflow-hidden"><div class="h-full bg-white" data-k="${k}" style="width:${k<SV.i?'100%':'0'};${k===SV.i?'transition:width 4s linear':''}"></div></div>`).join('')}</div>
+ <div class="flex items-center gap-2 text-white mb-3">${av(n,'w-9 h-9 text-xs')}<span class="font-bold text-sm flex-1">${esc(n)}</span><button onclick="closeStory()" aria-label="Close" class="p-1.5 ${btn}"><i data-lucide="x" class="w-6 h-6"></i></button></div>
+ <div class="relative">${body}<button aria-label="Previous" onclick="stepStory(-1)" class="absolute inset-y-0 left-0 w-1/2"></button><button aria-label="Next" onclick="stepStory(1)" class="absolute inset-y-0 right-0 w-1/2"></button></div></div>`;
+ el.classList.remove('hidden');el.classList.add('flex');lucide.createIcons();
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{const b=el.querySelector(`[data-k="${SV.i}"]`);if(b)b.style.width='100%';}));
+ clearTimeout(SV.t);SV.t=setTimeout(()=>stepStory(1),4000);}
+function stepStory(d){const n=SV.i+d;if(n<0)SV.i=0;else if(n>=stories[SV.id].length)return closeStory();else SV.i=n;showStory();}
+function closeStory(){clearTimeout(SV.t);const s=$('story');s.classList.add('hidden');s.classList.remove('flex');}
+$('story').addEventListener('click',e=>{if(e.target===$('story'))closeStory();});
+
+/* Add story */
+let AS={type:'text',g:SG[0],text:'',cap:''};
+function openAdd(){AS={type:'text',g:SG[0],text:'',cap:''};renderAS();const m=$('addM');m.classList.remove('hidden');m.classList.add('flex');}
+function closeAdd(){const m=$('addM');m.classList.add('hidden');m.classList.remove('flex');}
+function renderAS(){const t=AS.type;
+ $('asBody').innerHTML=`<div class="grid grid-cols-2 gap-2 mb-3">${[['text','Text gradient'],['visual','Visual snapshot']].map(([k,l])=>`<button onclick="AS.type='${k}';renderAS()" class="py-2 rounded-xl text-sm font-bold border-2 ${btn} ${t===k?'border-indigo-600 bg-indigo-50':'border-slate-200'}">${l}</button>`).join('')}</div>
+ ${t==='text'?`<textarea id="asText" rows="3" maxlength="90" class="inp mb-2" placeholder="Share an update or a goal">${esc(AS.text)}</textarea><div class="flex gap-2 mb-2">${SG.map(g=>`<button aria-label="Gradient" onclick="AS.text=$('asText').value;AS.g='${g}';renderAS()" class="w-10 h-10 rounded-full bg-gradient-to-br ${g} ${btn} ${AS.g===g?'ring-2 ring-offset-2 ring-indigo-600':''}"></button>`).join('')}</div>`
+ :`<input id="asCap" class="inp mb-2" maxlength="50" placeholder="Achievement title" value="${esc(AS.cap)}"><label class="block border-2 border-dashed border-slate-300 rounded-2xl p-4 text-center text-sm cursor-pointer hover:border-indigo-400 ${btn}"><span id="asFile">Choose a certificate image (optional)</span><input type="file" accept="image/*" class="hidden" onchange="$('asFile').textContent=this.files[0]?this.files[0].name:'Choose a certificate image (optional)'"></label>`}
+ <p id="asErr" class="text-sm text-rose-600 mt-2 hidden"></p><div class="flex justify-end gap-2 mt-4"><button onclick="closeAdd()" class="px-4 py-2 rounded-full text-sm font-bold hover:bg-slate-100 ${btn}">Cancel</button><button onclick="postStory()" class="px-5 py-2 rounded-full text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 ${btn}">Post story</button></div>`;lucide.createIcons();}
+function postStory(){const er=$('asErr'),bad=m=>{er.textContent=m;er.classList.remove('hidden');};
+ if(AS.type==='text'){const v=$('asText').value.trim();if(!v)return bad('Write something for your story.');stories.me.push({type:'text',text:v,g:AS.g});}
+ else{const v=$('asCap').value.trim();if(!v)return bad('Add an achievement title.');stories.me.push({type:'visual',title:v,sub:'Certified by EcaScroll OCR'});}
+ closeAdd();render();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeStory();closeAdd();}});
+render();
+</script>
+</body>
+</html>
