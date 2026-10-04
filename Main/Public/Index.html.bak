@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SkillScroll</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+    <style>
+        :root {
+            --bg: #09090b;
+            --pan: #0c0c0f;
+            --bd: #27272a;
+            --tx: #fafafa;
+            --mu: #a1a1aa;
+            --ac: #10b981;
+            --hv: #18181b;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--tx);
+            font: 14px/1.5 Inter, Geist, system-ui, sans-serif;
+            letter-spacing: -.01em;
+            -webkit-font-smoothing: antialiased;
+        }
+        #shell { display: grid; grid-template-columns: 240px minmax(0, 1fr) 330px; height: 100vh; }
+        #shell > * { overflow: auto; min-width: 0; }
+        #L, #R { background: var(--pan); padding: 20px 14px; }
+        #L { border-right: 1px solid var(--bd); }
+        #R { border-left: 1px solid var(--bd); }
+        #C { padding: 28px 36px 80px; }
+        h1 { font-size: 26px; font-weight: 600; letter-spacing: -.03em; margin: 0 0 4px; }
+        h2 { font-size: 15px; font-weight: 600; margin: 28px 0 12px; }
+        h3 { font-size: 14px; font-weight: 500; margin: 0; }
+        p { margin: 3px 0; }
+        .mu { color: var(--mu); }
+        .sm { font-size: 12px; }
+        a { color: inherit; text-decoration: none; }
+        .nav {
+            display: block;
+            padding: 7px 10px;
+            border-radius: 8px;
+            color: var(--mu);
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .nav:hover { background: var(--hv); color: var(--tx); }
+        .nav.on { background: var(--hv); color: var(--tx); box-shadow: inset 2px 0 var(--ac); }
+        .lab { font-size: 12px; color: var(--mu); margin: 22px 10px 6px; }
+        .b { border: 1px solid var(--bd); border-radius: 12px; padding: 16px; transition: all .2s; }
+        .b.h:hover { border-color: #3f3f46; background: var(--hv); cursor: pointer; }
+        .pill {
+            display: inline-block;
+            font-size: 11px;
+            border: 1px solid var(--bd);
+            border-radius: 99px;
+            padding: 1px 9px;
+            color: var(--mu);
+            text-transform: capitalize;
+        }
+        .pill.ac { color: var(--ac); border-color: var(--ac); }
+        button, .btn {
+            font: inherit;
+            font-weight: 500;
+            border: 1px solid var(--bd);
+            background: transparent;
+            color: var(--tx);
+            border-radius: 8px;
+            padding: 7px 14px;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        button:hover { background: var(--hv); }
+        button.p { background: var(--ac); border-color: var(--ac); color: #022c1c; }
+        button.p:hover { filter: brightness(1.1); }
+        input, textarea, select {
+            font: inherit;
+            width: 100%;
+            background: var(--bg);
+            color: var(--tx);
+            border: 1px solid var(--bd);
+            border-radius: 8px;
+            padding: 9px 12px;
+            margin: 5px 0 12px;
+            transition: all .2s;
+        }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--ac); }
+        input[type=checkbox] { width: auto; margin: 0 6px 0 0; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+        .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .sp { justify-content: space-between; }
+        .bar { height: 3px; background: var(--bd); border-radius: 3px; position: relative; }
+        .bar i { display: block; height: 100%; background: var(--ac); border-radius: 3px; transition: width .5s; }
+        .bar u { position: absolute; top: -3px; width: 1px; height: 9px; background: var(--mu); }
+        .fit { font-size: 22px; font-weight: 600; color: var(--ac); line-height: 1; }
+        .art { height: 120px; border-radius: 8px; margin-bottom: 12px; background-size: cover; background-position: center; border: 1px solid var(--bd); }
+        .art.big { height: 200px; }
+        .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--bd); margin: 18px 0 24px; overflow-x: auto; }
+        .tab {
+            padding: 9px 13px;
+            color: var(--mu);
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+            transition: all .2s;
+            font-size: 13px;
+        }
+        .tab:hover { color: var(--tx); }
+        .tab.ok:before { content: "✓ "; color: var(--ac); }
+        .tab.on { color: var(--tx); border-color: var(--ac); }
+        .tl { position: relative; padding-left: 34px; }
+        .tl:before { content: ""; position: absolute; left: 10px; top: 8px; bottom: 8px; width: 1px; background: var(--bd); }
+        .st { position: relative; padding: 12px 14px; margin-bottom: 10px; cursor: pointer; }
+        .st i {
+            position: absolute;
+            left: -31px;
+            top: 15px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: 1px solid #52525b;
+            transition: all .2s;
+        }
+        .st.on i { background: var(--ac); border-color: var(--ac); }
+        .st.on h3 { color: var(--mu); }
+        .av {
+            display: inline-grid;
+            place-items: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #27272a;
+            border: 2px solid var(--bg);
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: -8px;
+        }
+        .chat { max-height: 280px; overflow: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .m {
+            background: var(--hv);
+            border: 1px solid var(--bd);
+            border-radius: 10px;
+            padding: 8px 12px;
+            max-width: 90%;
+            white-space: pre-wrap;
+        }
+        .m.me { align-self: flex-end; background: #064e3b; border-color: #065f46; }
+        .sk { display: grid; grid-template-columns: 110px 1fr 70px; gap: 12px; align-items: center; margin: 10px 0; text-transform: capitalize; }
+        .gap { color: var(--mu); font-size: 12px; text-align: right; text-transform: none; }
+        .gap.ok { color: var(--ac); }
+        label { font-size: 12px; color: var(--mu); }
+        svg text { fill: var(--tx); font-family: inherit; }
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translate(-50%, 80px);
+            background: var(--tx);
+            color: #09090b;
+            padding: 9px 18px;
+            border-radius: 8px;
+            transition: all .3s;
+        }
+        #toast.s { transform: translate(-50%, 0); }
+        .auth { max-width: 360px; margin: 12vh auto; padding: 0 20px; }
+        @media(max-width:1100px) {
+            #shell { grid-template-columns: 220px minmax(0, 1fr); }
+            #R { grid-column: 1/-1; border-left: 0; border-top: 1px solid var(--bd); }
+        }
+        @media(max-width:760px) {
+            #shell { display: block; height: auto; }
+            #C { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="shell">
+        <aside id="L"></aside>
+        <main id="C">
+            <div class="auth">
+                <h1>SkillScroll</h1>
+                <p class="mu">Loading… If this stays blank, run <b>node server.js</b> and open http://localhost:3000</p>
+            </div>
+        </main>
+        <aside id="R"></aside>
+    </div>
+    <div id="toast"></div>
+
+    <script>
+        const $ = s => document.querySelector(s);
+        const C = $('#C'), Lc = $('#L'), Rc = $('#R');
+        let me = null, poll;
+        const chats = {};
+
+        const ST = ['Discover', 'Assess', 'Prepare', 'Team Up', 'Participate', 'Reflect', 'Level Up'];
+        const W = {
+            mun: ['communication', 'research', 'leadership'],
+            hack: ['technical', 'creativity', 'collaboration', 'analytical'],
+            research: ['research', 'analytical'],
+            volunteer: ['collaboration', 'leadership'],
+            arts: ['creativity', 'communication'],
+            sports: ['collaboration', 'leadership']
+        };
+
+        const ASSESSMENT_DATA = [
+            { skill: 'analytical', q: 'You are faced with a massive project with no clear starting point. How do you handle it?', o: [{t: 'Break it down into small, manageable parts.', v: 10}, {t: 'Dive in and figure it out as I go.', v: 4}, {t: 'Ask someone else to structure it for me.', v: 1}] },
+            { skill: 'analytical', q: 'When analyzing data, you find a contradictory outlier. What is your first instinct?', o: [{t: 'Investigate the outlier to see if it reveals a new pattern.', v: 10}, {t: 'Ignore it as a mistake in the data.', v: 3}, {t: 'Average it out to minimize the impact.', v: 1}] },
+            { skill: 'communication', q: 'You need to explain a complex technical idea to someone who knows nothing about it. What is your approach?', o: [{t: 'Use a simple analogy and check for understanding.', v: 10}, {t: 'Explain it in detail, hoping they catch on.', v: 4}, {t: 'Tell them it is too complex to explain simply.', v: 1}] },
+            { skill: 'communication', q: 'During a presentation, you realize your audience is confused. What do you do?', o: [{t: 'Stop and ask them where they lost the thread.', v: 10}, {t: 'Speak slower and louder.', v: 4}, {t: 'Finish the presentation as planned to save time.', v: 1}] },
+            { skill: 'creativity', q: 'You have a strict budget and a tight deadline for a project. How do you react?', o: [{t: 'Find an unconventional way to achieve the goal.', v: 10}, {t: 'Do the bare minimum to get it done.', v: 4}, {t: 'Ask for more time or money.', v: 1}] },
+            { skill: 'creativity', q: 'You are asked to solve a problem that has never been solved before. Your approach is:', o: [{t: 'Experiment with multiple weird ideas to see what sticks.', v: 10}, {t: 'Look for the closest existing solution and adapt it.', v: 4}, {t: 'Wait for a more experienced person to guide you.', v: 1}] },
+            { skill: 'collaboration', q: 'Your team is stuck in a disagreement about which direction to take. What do you do?', o: [{t: 'Facilitate a discussion to find a middle ground.', v: 10}, {t: 'Push for my idea until everyone agrees.', v: 4}, {t: 'Wait for the leader to decide.', v: 1}] },
+            { skill: 'collaboration', q: 'A teammate is not contributing their fair share. How do you handle this?', o: [{t: 'Talk to them privately to understand their blockers.', v: 10}, {t: 'Do their work yourself to ensure quality.', v: 4}, {t: 'Report them to the supervisor immediately.', v: 1}] },
+            { skill: 'leadership', q: 'A group project is falling apart because no one is taking charge. What is your move?', o: [{t: 'Step up, organize the tasks, and motivate the team.', v: 10}, {t: 'Do my part and hope others do theirs.', v: 4}, {t: 'Complain about the lack of organization.', v: 1}] },
+            { skill: 'leadership', q: 'You have to deliver bad news to your team. How do you do it?', o: [{t: 'Be honest, clear, and offer a path forward.', v: 10}, {t: 'Sugarcoat it so they don\'t get discouraged.', v: 4}, {t: 'Send it in an email to avoid conflict.', v: 1}] },
+            { skill: 'research', q: 'You find two sources that completely contradict each other. What is your next step?', o: [{t: 'Dig deeper into a third, more authoritative source.', v: 10}, {t: 'Pick the one that sounds more convincing.', v: 4}, {t: 'Ignore both and make an educated guess.', v: 1}] },
+            { skill: 'research', q: 'You are researching a topic and realize your initial hypothesis was wrong. You:', o: [{t: 'Pivot immediately and follow the evidence.', v: 10}, {t: 'Try to find data that supports the original idea.', v: 4}, {t: 'Stop the research as it is a failure.', v: 1}] },
+            { skill: 'technical', q: 'You encounter a bug in your code that you have never seen before. How do you handle it?', o: [{t: 'Systematically isolate the cause and research a fix.', v: 10}, {t: 'Change things randomly until it works.', v: 4}, {t: 'Give up and start over.', v: 1}] },
+            { skill: 'technical', q: 'You are tasked with learning a new tool in 48 hours. Your strategy is:', o: [{t: 'Build a small project using the tool to learn by doing.', v: 10}, {t: 'Read the entire documentation from start to finish.', v: 4}, {t: 'Watch a few tutorials and hope for the best.', v: 1}] },
+        ];
+
+        const D = {
+            analytical: { q: 'Analysis', v: 0 },
+            communication: { q: 'Communication', v: 0 },
+            creativity: { q: 'Creativity', v: 0 },
+            collaboration: { q: 'Collaboration', v: 0 },
+            leadership: { q: 'Leadership', v: 0 },
+            research: { q: 'Research', v: 0 },
+            technical: { q: 'Technical', v: 0 },
+        };
+
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        const toast = t => {
+            const e = $('#toast');
+            e.textContent = t;
+            e.className = 's';
+            setTimeout(() => e.className = '', 2600);
+        };
+
+        async function api(p, m = 'GET', b) {
+            const r = await fetch('/api' + p, {
+                method: m,
+                headers: { 'Content-Type': 'application/json' },
+                body: b ? JSON.stringify(b) : undefined
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) {
+                toast(d.error || 'Something went wrong');
+                throw d;
+            }
+            return d;
+        }
+
+        const bg = o => o.image ? `background-image:url(/uploads/${esc(o.image)})` : `background-image:linear-gradient(135deg,hsl(${+o.hue} 30% 22%),hsl(${+o.hue} 25% 10%))`;
+        const av = n => `<span class="av" title="${esc(n)}">${esc(n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase())}</span>`;
+        const bar = (v, t) => `<div class="bar"><i style="width:${+v}%"></i>${t ? `<u style="left:${+t}%"></u>` : ''}</div>`;
+
+        const card = o => `
+            <a class="b h" href="#/j/${+o.id}/0">
+                <div class="art" style="${bg(o)}"></div>
+                <div class="row sp">
+                    <div>
+                        <h3>${esc(o.title)}</h3>
+                        <p class="mu sm">${esc(o.date)}</p>
+                    </div>
+                    <div style="text-align:right">
+                        <div class="fit">${o.fit ?? '–'}</div>
+                        <span class="mu sm">fit score</span>
+                    </div>
+                </div>
+                <div style="margin:10px 0">${bar(o.fit || 0)}</div>
+                <span class="pill ac">${esc(o.type)}</span>
+                <p class="mu sm" style="margin-top:8px">${esc(o.why || '')}</p>
+            </a>`;
+
+        async function shell(active, opp) {
+            const J = me.role === 'student' ? await api('/journeys') : [];
+            Lc.innerHTML = `
+                <div style="padding:0 10px 8px"><b style="font-size:16px;letter-spacing:-.03em">SkillScroll</b></div>
+                ${me.role === 'student' ? `
+                    <a class="nav ${active === 'd' ? 'on' : ''}" href="#/">Discover</a>
+                    <a class="nav ${active === 'p' ? 'on' : ''}" href="#/passport">Learning Passport</a>
+                    <a class="nav" href="#/assess">Retake assessment</a>
+                    <div class="lab">Active journeys</div>
+                    ${J.map(j => `
+                        <a class="nav ${active === 'j' + j.id ? 'on' : ''}" href="#/j/${j.id}/2">
+                            <div>${esc(j.title)}</div>
+                            <div class="bar" style="margin-top:6px"><i style="width:${j.done / j.total * 100}%"></i></div>
+                        </a>
+                    `).join('') || '<p class="mu sm" style="padding:0 10px">None yet. Start one from Discover.</p>'}
+                ` : `<a class="nav on" href="#/">Organizer</a>`}
+                <div class="lab">${esc(me.name)}</div>
+                <a class="nav" onclick="out()">Sign out</a>
+            `;
+            coach(opp);
+        }
+
+        function coach(o) {
+            if (me.role !== 'student') {
+                Rc.innerHTML = '<h3>Organizer tools</h3><p class="mu">Publish events, upload imagery and see teams registered for your opportunities.</p>';
+                return;
+            }
+            if (!o) {
+                Rc.innerHTML = '<h3>AI coach</h3><p class="mu">Personalized AI Coach - Gemini feature available soon.</p>';
+                return;
+            }
+            const h = chats[o.id] = chats[o.id] || [],
+                  d = o.journey?.done || [],
+                  nx = o.steps.findIndex((_, i) => !d.includes(i));
+
+            Rc.innerHTML = `
+                <h3>AI coach</h3>
+                <p class="mu sm">${esc(o.title)}</p>
+                <div id="coach-status">
+                    ${nx >= 0 && o.journey ? `
+                        <div class="b" style="margin:14px 0">
+                            <p class="mu sm">Next up</p>
+                            <h3>${esc(o.steps[nx].title)}</h3>
+                            <p class="mu sm">${esc(o.steps[nx].desc)}</p>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="chat" id="ch">
+                    ${h.map(m => `<div class="m ${m.me ? 'me' : ''}">${esc(m.t)}</div>`).join('') || '<p class="mu sm">Ask for feedback on a draft, a speech outline or a pitch.</p>'}
+                </div>
+                <div class="row" style="flex-wrap:nowrap">
+                    <input id="jc" placeholder="Ask your coach" style="margin:0">
+                    <button class="p" id="cs">Send</button>
+                </div>
+            `;
+
+            const go = async () => {
+                const input = $('#jc');
+                if (!input) return;
+                const v = input.value.trim();
+                if (!v) return;
+
+                input.value = '';
+                h.push({ me: 1, t: v });
+                h.push({ t: 'Thinking…' });
+
+                const chat = $('#ch');
+                if (chat) {
+                    chat.innerHTML = h.map(m => `<div class="m ${m.me ? 'me' : ''}">${esc(m.t)}</div>`).join('');
+                    chat.scrollTop = 1e5;
+                }
+
+                setTimeout(async () => {
+                    let reply = "";
+                    const msg = v.toLowerCase();
+
+                    if (msg.includes("info about my country") || msg.includes("nepal")) {
+                        reply = "To find reliable info about your country (like Nepal), I recommend checking the official government portal, the CIA World Factbook, and recent UN resolutions related to the topic. Look for 'National Reports' for the most accurate data.";
+                    } else {
+                        reply = "In order to draft a good MUN position paper, focus on three key areas: the history of the issue, your country's specific policy, and clear, actionable solutions. Avoid generalities and use official UN documents for citations.";
+                    }
+
+                    h[h.length - 1].t = reply;
+                    if (chat) {
+                        chat.innerHTML = h.map(m => `<div class="m ${m.me ? 'me' : ''}">${esc(m.t)}</div>`).join('');
+                        chat.scrollTop = 1e5;
+                    }
+                }, 1000);
+            };
+
+            const cs = $('#cs');
+            if (cs) cs.onclick = go;
+            const cm = $('#jc');
+            if (cm) cm.onkeydown = e => e.key === 'Enter' && go();
+            const ch = $('#ch');
+            if (ch) ch.scrollTop = 1e5;
+        }
+
+        function auth() {
+            let mode = 'login';
+            const draw = () => {
+                Lc.innerHTML = Rc.innerHTML = '';
+                C.innerHTML = `
+                    <div class="auth">
+                        <h1>SkillScroll</h1>
+                        <p class="mu">Discover, prepare, team up and prove what you learned.</p>
+                        <br>
+                        ${mode === 'signup' ? `
+                            <label>Name</label><input id="n">
+                            <label>I am a</label>
+                            <select id="r">
+                                <option value="student">Student</option>
+                                <option value="organizer">Organizer</option>
+                            </select>
+                        ` : ''}
+                        <label>Email</label><input id="e" type="email" value="${mode === 'login' ? 'demo@skillscroll.dev' : ''}">
+                        <label>Password</label><input id="p" type="password" value="${mode === 'login' ? 'Skillscroll1!' : ''}">
+                        <div class="row">
+                            <button class="p" id="go">${mode === 'login' ? 'Sign in' : 'Create account'}</button>
+                            <button id="sw">${mode === 'login' ? 'Create account' : 'Sign in'}</button>
+                        </div>
+                    </div>
+                `;
+            };
+            draw();
+            const sw = $('#sw');
+            if (sw) sw.onclick = () => { mode = mode === 'login' ? 'signup' : 'login'; draw(); };
+            const go = $('#go');
+            if (go) go.onclick = async () => {
+                const b = { email: $('#e').value, password: $('#p').value };
+                if (mode === 'signup') {
+                    b.name = $('#n').value;
+                    b.role = $('#r').value;
+                }
+                me = (await api('/' + mode, 'POST', b)).user;
+                location.hash = '#/';
+                route();
+            };
+        }
+
+        async function out() {
+            await api('/logout', 'POST');
+            me = null;
+            route();
+        }
+
+        async function confirmAssess() {
+            C.innerHTML = `
+                <div class="auth">
+                    <h1>Retake Assessment?</h1>
+                    <p class="mu">Do you want to take the test again? This will overwrite your current skill profile.</p>
+                    <br>
+                    <div class="row">
+                        <button class="p" onclick="assess()">Yes, Retake</button>
+                        <button onclick="location.hash='#/'">Cancel</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function assess() {
+            const scores = {};
+            let cur = 0;
+            const qs = ASSESSMENT_DATA;
+
+            const draw = () => {
+                const q = qs[cur];
+                C.innerHTML = `
+                    <h1>Skills assessment</h1>
+                    <p class="mu">Question ${cur + 1} of ${qs.length}</p>
+                    <div class="bar" style="margin-bottom:20px"><i style="width:${(cur / qs.length) * 100}%"></i></div>
+                    <div class="b" style="margin-top:12px">
+                        <p style="font-size:16px;font-weight:500">${q.q}</p>
+                        <div style="display:grid;gap:10px;margin-top:16px">
+                            ${q.o.map((opt, i) => `<button class="b h" style="text-align:left;padding:12px" onclick="pick(${opt.v}, '${q.skill}')">${opt.t}</button>`).join('')}
+                        </div>
+                    </div>
+                `;
+            };
+
+            window.pick = (v, skill) => {
+                scores[skill] = (scores[skill] || 0) + v;
+                cur++;
+                if (cur < qs.length) {
+                    draw();
+                } else {
+                    const finalScores = {};
+                    const skillCounts = {};
+                    ASSESSMENT_DATA.forEach(q => {
+                        skillCounts[q.skill] = (skillCounts[q.skill] || 0) + 1;
+                    });
+
+                    Object.keys(skillCounts).forEach(s => {
+                        const maxPossible = skillCounts[s] * 10;
+                        finalScores[s] = Math.round((scores[s] || 0) / maxPossible * 100);
+                    });
+
+                    C.innerHTML = '<h1>Processing...</h1><p class="mu">Calculating your skill profile.</p>';
+                    api('/assess', 'POST', finalScores).then(() => {
+                        me.assessed = true;
+                        location.hash = '#/';
+                    });
+                }
+            };
+            draw();
+        }
+
+        async function home() {
+            if (!me.assessed) return assess();
+            await shell('d');
+            const rec = await api('/recommend');
+            C.innerHTML = `
+                <h1>Discover</h1>
+                <p class="mu">Ranked by how well each opportunity fits your skills.</p>
+                <br>
+                <div class="grid">${rec.map(card).join('') || '<p class="mu">Nothing new right now.</p>'}</div>
+            `;
+        }
+
+        function tree(L, E) {
+            const ks = Object.keys(D),
+                  got = new Set(E.flatMap(e => e.skills)),
+                  cx = 260, cy = 165;
+            return `
+                <svg viewBox="0 0 520 330" width="100%">
+                    <circle cx="${cx}" cy="${cy}" r="30" fill="#09090b" stroke="#27272a"/>
+                    <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="12">You</text>
+                    ${ks.map((k, i) => {
+                        const a = i / ks.length * 6.283 - 1.571,
+                              x = cx + Math.cos(a) * 190,
+                              y = cy + Math.sin(a) * 115,
+                              v = L[k] || 0,
+                              c = 2 * Math.PI * 24;
+                        return `
+                            <line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#27272a"/>
+                            <g>
+                                <circle cx="${x}" cy="${y}" r="24" fill="#09090b" stroke="#27272a" stroke-width="2.5" />
+                                <circle cx="${x}" cy="${y}" r="24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-dasharray="${v / 100 * c} ${c}" transform="rotate(-90 ${x} ${y})"/>
+                                <text x="${x}" y="${y + 4}" text-anchor="middle" font-size="12">${v}</text>
+                                <text x="${x}" y="${y + 42}" text-anchor="middle" font-size="11" fill="#a1a1aa" style="fill:#a1a1aa">${k}</text>
+                                ${got.has(k) ? `<circle cx="${x + 19}" cy="${y - 19}" r="5" fill="#10b981"/>` : ''}
+                            </g>
+                        `;
+                    }).join('')}
+                </svg>
+            `;
+        }
+
+        async function levelHTML() {
+            const P = await api('/passport'),
+                  nx = (await api('/recommend'))[0];
+            return `
+                <div class="b">${tree(P.scores, P.entries)}<p class="mu sm">Ring = skill level. Green dot = backed by evidence from a completed journey.</p></div>
+                <h2>Experience ledger</h2>
+                ${P.entries.map(e => `
+                    <div class="b" style="margin-bottom:10px">
+                        <div class="row sp">
+                            <h3>${esc(e.title)}</h3>
+                            <span class="mu sm">${new Date(e.ts).toLocaleDateString()}</span>
+                        </div>
+                        <p class="mu">Role: ${esc(e.role)}</p>
+                        <p>${esc(e.text)}</p>
+                        <p class="mu sm">Evidence: ${esc(e.evidence)}</p>
+                        <div class="row" style="margin-top:8px">${e.skills.map(s => `<span class="pill ac">${esc(s)} +10</span>`).join('')}</div>
+                    </div>
+                `).join('') || '<p class="mu">Finish a journey and reflect to add your first entry.</p>'}
+                ${nx ? `<h2>Level up next</h2><div class="grid">${card(nx)}</div>` : ''}
+            `;
+        }
+
+        async function passport() {
+            await shell('p');
+            C.innerHTML = `<h1>Learning Passport</h1><p class="mu">An evidence-based record of what you can do.</p><br>` + await levelHTML();
+        }
+
+        async function journey(id, st) {
+            const [o, P] = await Promise.all([api('/opps/' + id), api('/passport')]);
+            await shell('j' + id, o);
+            const L = P.scores, n = o.steps.length, d = o.journey?.done || [], all = d.length === n, tm = o.teams[0], need = W[o.type] || [];
+            const T = tm ? await api('/teams/' + tm.id) : null;
+            const cur = !o.journey ? 0 : o.reflection ? 6 : !all ? 2 : !tm ? 3 : 5;
+            const tabs = ST.map((s, i) => `<a class="tab ${i == st ? 'on' : ''} ${i < cur ? 'ok' : ''}" href="#/j/${id}/${i}">${s}</a>`).join('');
+
+            const needJ = '<div class="b"><p>Start this journey first to unlock this stage.</p><br><button class="p" onclick="start()">Start journey</button></div>';
+            window.start = async () => { await api(`/opps/${id}/journey`, 'POST'); location.hash = `#/j/${id}/2`; route(); };
+
+            const gapRow = k => {
+                const v = L[k] || 0, g = 70 - v;
+                return `<div class="sk"><span>${k}</span>${bar(v, 70)}<span class="gap ${g <= 0 ? 'ok' : ''}">${g <= 0 ? 'on target' : '+' + g + ' to go'}</span></div>`;
+            };
+
+            let body = '';
+            if (st == 0) body = `
+                <div class="art big" style="${bg(o)}"></div>
+                <div class="row"><span class="pill ac">${esc(o.type)}</span><span class="pill">${esc(o.date)}</span></div>
+                <p style="font-size:15px;margin:14px 0 18px;max-width:60ch">${esc(o.summary)}</p>
+                <div class="row">
+                    ${o.journey ? `<button class="p" onclick="location.hash='#/j/${id}/2'">Continue journey</button>` : `<button class="p" onclick="start()">Start journey</button>`}
+                    <button id="sv">${o.saved ? 'Saved' : 'Save'}</button>
+                </div>
+            `;
+            if (st == 1) body = `
+                <div class="b">
+                    <h3>Skills this opportunity rewards</h3>
+                    <p class="mu sm">Marker shows the target level (70).</p>
+                    <br>${need.map(gapRow).join('')}
+                </div>
+                <br><a href="#/assess"><button>Retake assessment</button></a>
+            `;
+            if (st == 2) body = !o.journey ? needJ : `
+                <div class="b" style="margin-bottom:18px">
+                    <h3>Skill gaps for this journey</h3>
+                    <br>${need.map(gapRow).join('')}
+                </div>
+                <div class="tl">
+                    ${o.steps.map((s, i) => {
+                        const k = need[i % need.length];
+                        return `<div class="b h st ${d.includes(i) ? 'on' : ''}" data-i="${i}"><i></i><div class="row sp"><h3>${esc(s.title)}</h3><span class="pill">builds ${k}</span></div><p class="mu">${esc(s.desc)}</p></div>`;
+                    }).join('')}
+                </div>
+                <p class="mu sm">Click a step to mark it done. ${d.length}/${n} complete.</p>
+            `;
+            if (st == 3) body = !o.journey ? needJ : !T ? `
+                <div class="grid">
+                    <div class="b"><h3>Create a team</h3><br><input id="tn" placeholder="Team name"><button class="p" id="ct">Create team</button></div>
+                    <div class="b"><h3>Join with a code</h3><br><input id="jc" placeholder="Code"><button id="jt">Join team</button></div>
+                </div>
+            ` : `
+                <div class="row sp">
+                    <div class="row">
+                        <div style="display:flex;padding-left:8px">${T.members.map(m => av(m.name)).join('')}</div>
+                        <div><h3>${esc(T.name)}</h3><p class="mu sm">${T.members.length} members</p></div>
+                    </div>
+                    <span class="pill">Invite code ${esc(T.code)}</span>
+                </div>
+                <div class="b" style="margin:18px 0">
+                    <div class="row sp"><h3>Shared milestones</h3><span class="mu sm">${d.length}/${n}</span></div>
+                    <br>${bar(d.length / n * 100)}
+                    <div class="row" style="margin-top:12px">${o.steps.map((s, i) => `<span class="pill ${d.includes(i) ? 'ac' : ''}">${esc(s.title)}</span>`).join('')}</div>
+                </div>
+                <h3>Team inbox</h3>
+                <br>
+                <div class="chat" id="tc">
+                    ${T.msgs.map(m => `<div class="m ${m.name === me.name ? 'me' : ''}"><b class="sm">${esc(m.name)}</b><br>${esc(m.body)}</div>`).join('') || '<p class="mu sm">No messages yet. Say hello.</p>'}
+                </div>
+                <div class="row" style="flex-wrap:nowrap">
+                    <input id="mb" placeholder="Message your team" style="margin:0">
+                    <button class="p" id="ms">Send</button>
+                </div>
+            `;
+            if (st == 4) body = `
+                <div class="b">
+                    <h3>Event day</h3>
+                    <p class="mu">${esc(o.title)} · ${esc(o.date)}</p>
+                    <br>
+                    ${['Registration confirmed', 'Roles agreed with team', 'Materials ready'].map(t => `<p><label style="font-size:14px;color:var(--tx)"><input type="checkbox">${t}</label></p>`).join('')}
+                    <br>
+                    <button class="p" onclick="location.hash='#/j/${id}/5'">I took part. Reflect now</button>
+                </div>
+            `;
+            if (st == 5) body = o.reflection ? `
+                <div class="b">
+                    <h3>Reflection saved</h3>
+                    <p class="mu">Role: ${esc(o.reflection.role)}</p>
+                    <br><button class="p" onclick="location.hash='#/j/${id}/6'">See Level Up</button>
+                </div>
+            ` : !all ? `
+                <div class="b">
+                    <p>Complete all ${n} preparation steps to unlock your reflection.</p>
+                    <br><button onclick="location.hash='#/j/${id}/2'">Back to Prepare</button>
+                </div>
+            ` : `
+                <div class="b" style="max-width:560px">
+                    <h3>Reflect on your experience</h3>
+                    <br>
+                    <label>Your role</label><input id="rr">
+                    <label>What happened and what did you learn?</label><textarea id="rt" rows="4"></textarea>
+                    <label>Skills you demonstrated</label>
+                    <div class="row" style="margin:6px 0 12px">
+                        ${Object.keys(D).map(k => `<label style="color:var(--tx);text-transform:capitalize"><input type="checkbox" class="sk-c" value="${k}">${k}</label>`).join('')}
+                    </div>
+                    <label>Evidence (link or description)</label><input id="re">
+                    <button class="p" id="rf">Add to my Passport</button>
+                </div>
+            `;
+            if (st == 6) body = await levelHTML();
+            C.innerHTML = `<p class="mu sm">${esc(o.type)}</p><h1>${esc(o.title)}</h1><div class="tabs">${tabs}</div>${body}`;
+
+            const on = (i, f) => { const e = $(i); if (e) e.onclick = f; };
+            on('#sv', async () => { await api(`/opps/${id}/save`, 'POST'); route(); });
+            C.querySelectorAll('.st').forEach(e => e.onclick = async () => { await api(`/opps/${id}/step`, 'POST', { index: +e.dataset.i }); route(); });
+            on('#ct', async () => { await api('/teams', 'POST', { oppId: id, name: $('#tn').value }); route(); });
+            on('#jt', async () => { await api('/teams/join', 'POST', { code: $('#jc').value }); route(); });
+            const send = async () => {
+                const v = $('#mb').value;
+                if (!v.trim()) return;
+                await api(`/teams/${tm.id}/msgs`, 'POST', { body: v });
+                route();
+            };
+            on('#ms', send);
+            if ($('#mb')) $('#mb').onkeydown = e => e.key === 'Enter' && send();
+            if ($('#tc')) {
+                $('#tc').scrollTop = 1e5;
+                poll = setInterval(() => {
+                    if (document.activeElement.id !== 'mb' && /\/3$/.test(location.hash)) route();
+                }, 6000);
+            }
+            on('#rf', async () => {
+                await api('/reflect', 'POST', {
+                    oppId: id,
+                    role: $('#rr').value,
+                    text: $('#rt').value,
+                    evidence: $('#re').value,
+                    skills: [...document.querySelectorAll('.sk-c:checked')].map(x => x.value)
+                });
+                toast('Learning Passport updated');
+                location.hash = `#/j/${id}/6`;
+            });
+        }
+
+        async function org() {
+            await shell('o');
+            const Ls = await api('/org/opps');
+            C.innerHTML = `
+                <h1>Your opportunities</h1>
+                <br>
+                <div class="b" style="max-width:560px">
+                    <h3>New opportunity</h3>
+                    <br>
+                    <label>Title</label><input id="t">
+                    <label>Type</label>
+                    <select id="ty">${Object.keys(W).map(x => `<option>${x}</option>`).join('')}</select>
+                    <label>Date</label><input id="d">
+                    <label>Summary</label><textarea id="s" rows="3"></textarea>
+                    <label><input type="checkbox" id="pb" checked> Publish now</label>
+                    <br><br>
+                    <button class="p" id="cr">Create</button>
+                </div>
+                <h2>Published and drafts</h2>
+                <div class="grid">
+                    ${Ls.map(o => `
+                        <div class="b">
+                            <div class="art" style="${bg(o)}"></div>
+                            <div class="row sp">
+                                <h3>${esc(o.title)}</h3>
+                                <span class="pill ${o.pub ? 'ac' : ''}">${o.pub ? 'Live' : 'Draft'}</span>
+                            </div>
+                            <p class="mu sm">${esc(o.summary)}</p>
+                            <br>
+                            <input type="file" accept="image/png,image/jpeg,image/webp" data-o="${o.id}">
+                            <p class="sm">Teams (${o.teams.length})</p>
+                            ${o.teams.map(t => `<p class="mu sm">${esc(t.name)}: ${t.members.map(m => esc(m.name)).join(', ')}</p>`).join('')}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            $('#cr').onclick = async () => {
+                await api('/org/opps', 'POST', {
+                    title: $('#t').value,
+                    type: $('#ty').value,
+                    date: $('#d').value,
+                    summary: $('#s').value,
+                    pub: $('#pb').checked,
+                    hue: Math.random() * 360
+                });
+                route();
+            };
+            C.querySelectorAll('[type=file]').forEach(f => f.onchange = () => {
+                const x = f.files[0];
+                if (!x) return;
+                if (!/^image\/(png|jpeg|webp)$/.test(x.type) || x.size > 2097152) return toast('Use a PNG, JPG or WebP under 2 MB');
+                const r = new FileReader();
+                r.onload = async () => {
+                    await api(`/org/opps/${f.dataset.o}/image`, 'POST', { data: r.result});
+                    toast('Image uploaded');
+                    route();
+                };
+                r.readAsDataURL(x);
+            });
+        }
+
+        async function route() {
+            clearInterval(poll);
+            if (me === null) {
+                try {
+                    me = (await api('/me')).user || false;
+                } catch {
+                    C.innerHTML = '<div class="auth"><h1>Server not reachable</h1><p class="mu">Run <b>node server.js</b> and open http://localhost:3000</p></div>';
+                    return;
+                }
+            }
+            if (!me) return auth();
+            const h = location.hash.slice(2).split('/');
+            try {
+                if (me.role === 'organizer') return org();
+                if (h[0] === 'j') return journey(h[1], +h[2] || 0);
+                if (h[0] === 'passport') return passport();
+                if (h[0] === 'assess') return confirmAssess();
+                home();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        addEventListener('hashchange', route);
+        route();
+    </script>
+</body>
+</html>
