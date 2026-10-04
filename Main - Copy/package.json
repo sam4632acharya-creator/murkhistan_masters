@@ -1,0 +1,6 @@
+{
+ "name": "skillscroll",
+ "scripts": {
+   "start": "node server.js"
+ }
+}
